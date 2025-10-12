@@ -337,7 +337,23 @@
                     <div class="info-value" id="resultSignId"></div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Date & Time:</div>
+                    <div class="info-label">Signer Name (簽署人姓名):</div>
+                    <div class="info-value" id="resultSignerName"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">ID Number (身分證字號):</div>
+                    <div class="info-value" id="resultSignerIdNumber"></div>
+                </div>
+                <div class="info-item" id="resultEmailItem" style="display: none;">
+                    <div class="info-label">Email:</div>
+                    <div class="info-value" id="resultSignerEmail"></div>
+                </div>
+                <div class="info-item" id="resultPhoneItem" style="display: none;">
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value" id="resultSignerPhone"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Date & Time (ISO 8601):</div>
                     <div class="info-value" id="resultDateTime"></div>
                 </div>
                 <div class="info-item">
@@ -347,6 +363,18 @@
                 <div class="info-item">
                     <div class="info-label">Timestamp:</div>
                     <div class="info-value" id="resultTimestamp"></div>
+                </div>
+                <div class="info-item" id="resultJurisdictionItem" style="display: none;">
+                    <div class="info-label">Jurisdiction:</div>
+                    <div class="info-value" id="resultJurisdiction"></div>
+                </div>
+                <div class="info-item" id="resultComplianceItem" style="display: none;">
+                    <div class="info-label">Compliance Standard:</div>
+                    <div class="info-value" id="resultCompliance"></div>
+                </div>
+                <div class="info-item" id="resultIntegrityItem" style="display: none;">
+                    <div class="info-label">Integrity Verification:</div>
+                    <div class="info-value" id="resultIntegrity"></div>
                 </div>
             </div>
 
@@ -373,6 +401,15 @@
 
         let uploadedFile = null;
         let decryptedData = null;
+
+        // SHA-256 hash function for integrity verification
+        async function sha256(data) {
+            const encoder = new TextEncoder();
+            const dataBuffer = encoder.encode(data);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
         // File upload handling
         const fileInput = document.getElementById('fileInput');
@@ -466,6 +503,13 @@
                     throw new Error('Invalid file format');
                 }
 
+                // Check version and provide info
+                if (fileData.version === '1.0') {
+                    showAlert('Legacy signature format detected (v1.0). Signer identity not available.', 'success');
+                } else if (fileData.version === '2.0') {
+                    showAlert('Taiwan-compliant signature format (v2.0) with full signer information.', 'success');
+                }
+
                 // Decrypt data using Sign ID as part of the key
                 const decryptionKey = MASTER_KEY + signIdInput;
                 decryptedData = decryptData(fileData.data, decryptionKey);
@@ -481,7 +525,7 @@
                 }
 
                 // Display results
-                displayResults(decryptedData, true);
+                await displayResults(decryptedData, true);
                 showAlert('Signature decrypted and verified successfully!', 'success');
 
             } catch (error) {
@@ -491,7 +535,7 @@
         }
 
         // Display results
-        function displayResults(data, verified) {
+        async function displayResults(data, verified) {
             document.getElementById('resultSignId').textContent = data.signId;
             document.getElementById('resultDateTime').textContent = data.datetime;
             document.getElementById('resultDeviceId').textContent = data.deviceId;
@@ -499,12 +543,76 @@
             const timestamp = new Date(data.timestamp);
             document.getElementById('resultTimestamp').textContent = timestamp.toLocaleString();
             
+            // Display signer information if available (version 2.0+)
+            if (data.signerInfo) {
+                document.getElementById('resultSignerName').textContent = data.signerInfo.name || 'N/A';
+                document.getElementById('resultSignerIdNumber').textContent = data.signerInfo.idNumber || 'N/A';
+                
+                if (data.signerInfo.email) {
+                    document.getElementById('resultSignerEmail').textContent = data.signerInfo.email;
+                    document.getElementById('resultEmailItem').style.display = 'block';
+                }
+                
+                if (data.signerInfo.phone) {
+                    document.getElementById('resultSignerPhone').textContent = data.signerInfo.phone;
+                    document.getElementById('resultPhoneItem').style.display = 'block';
+                }
+            } else {
+                // Old format without signer info
+                document.getElementById('resultSignerName').textContent = 'N/A (Legacy format)';
+                document.getElementById('resultSignerIdNumber').textContent = 'N/A (Legacy format)';
+            }
+
+            // Display jurisdiction and compliance info if available
+            if (data.jurisdiction) {
+                document.getElementById('resultJurisdiction').textContent = data.jurisdiction === 'TW' ? 'Taiwan (R.O.C.)' : data.jurisdiction;
+                document.getElementById('resultJurisdictionItem').style.display = 'block';
+            }
+
+            if (data.complianceStandard) {
+                document.getElementById('resultCompliance').textContent = data.complianceStandard;
+                document.getElementById('resultComplianceItem').style.display = 'block';
+            }
+
+            // Verify signature integrity
+            let integrityStatus = '⚠️ Not Available';
+            if (data.signatureHash && data.signature) {
+                try {
+                    const currentHash = await sha256(data.signature);
+                    if (currentHash === data.signatureHash) {
+                        integrityStatus = '✅ Verified - Signature unchanged';
+                    } else {
+                        integrityStatus = '❌ Failed - Signature modified';
+                        verified = false;
+                    }
+                } catch (e) {
+                    integrityStatus = '⚠️ Error verifying integrity';
+                }
+                document.getElementById('resultIntegrity').textContent = integrityStatus;
+                document.getElementById('resultIntegrityItem').style.display = 'block';
+            }
+            
             document.getElementById('signatureImage').src = data.signature;
 
             // Show document section if document exists
             if (data.document && data.documentName) {
                 document.getElementById('documentSection').style.display = 'block';
                 document.getElementById('documentName').textContent = 'File: ' + data.documentName;
+                
+                // Verify document integrity if hash is available
+                if (data.documentHash) {
+                    try {
+                        const currentDocHash = await sha256(data.document);
+                        if (currentDocHash === data.documentHash) {
+                            document.getElementById('documentName').textContent += ' ✅ (Integrity verified)';
+                        } else {
+                            document.getElementById('documentName').textContent += ' ❌ (Document modified!)';
+                            verified = false;
+                        }
+                    } catch (e) {
+                        document.getElementById('documentName').textContent += ' ⚠️ (Cannot verify)';
+                    }
+                }
             } else {
                 document.getElementById('documentSection').style.display = 'none';
             }

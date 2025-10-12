@@ -285,13 +285,51 @@
         </div>
 
         <div id="mainContent" style="display: none;">
+        
+        <!-- Signer Identity Section (Required for Taiwan Law) -->
+        <div class="input-section">
+            <h2 style="color: #333; margin-bottom: 15px; font-size: 1.3em;">📋 Signer Information (Required)</h2>
+            <div style="margin-bottom: 15px;">
+                <label for="signerName">Full Name (姓名) *:</label>
+                <input type="text" id="signerName" placeholder="Enter your full name" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="signerIdNumber">National ID / Passport Number (身分證字號/護照號碼) *:</label>
+                <input type="text" id="signerIdNumber" placeholder="e.g., A123456789" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="signerEmail">Email (電子郵件):</label>
+                <input type="email" id="signerEmail" placeholder="your.email@example.com">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="signerPhone">Phone Number (電話號碼):</label>
+                <input type="tel" id="signerPhone" placeholder="+886-912-345-678">
+            </div>
+        </div>
+
+        <!-- Legal Consent Section -->
+        <div class="info-section" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-bottom: 10px;">⚖️ Legal Notice (法律聲明)</h3>
+            <p style="color: #856404; font-size: 0.9em; line-height: 1.6; margin-bottom: 10px;">
+                This electronic signature is created in compliance with the Electronic Signatures Act of Taiwan (R.O.C.) 
+                (中華民國電子簽章法). By signing, you acknowledge that this electronic signature has the same legal effect 
+                as a handwritten signature.
+            </p>
+            <div style="display: flex; align-items: center; margin-top: 15px;">
+                <input type="checkbox" id="legalConsent" style="width: auto; margin-right: 10px; cursor: pointer;">
+                <label for="legalConsent" style="color: #856404; cursor: pointer; margin: 0;">
+                    I understand and agree that this electronic signature is legally binding (我理解並同意此電子簽章具有法律效力)
+                </label>
+            </div>
+        </div>
+
         <div class="info-section">
             <div class="info-item">
                 <span class="info-label">Sign ID:</span>
                 <span class="info-value" id="signId">Generating...</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Date & Time:</span>
+                <span class="info-label">Date & Time (ISO 8601):</span>
                 <span class="info-value" id="datetime">Loading...</span>
             </div>
             <div class="info-item">
@@ -373,19 +411,22 @@
             return 'DEV-' + Math.abs(hash).toString(16).toUpperCase();
         }
 
-        // Update date and time
+        // SHA-256 hash function for document integrity
+        async function sha256(data) {
+            const encoder = new TextEncoder();
+            const dataBuffer = encoder.encode(data);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Update date and time (ISO 8601 format for Taiwan)
         function updateDateTime() {
             const now = new Date();
-            const formatted = now.toLocaleString('en-US', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            });
-            document.getElementById('datetime').textContent = formatted;
+            // ISO 8601 format with timezone (Taiwan is UTC+8)
+            const formatted = now.toISOString();
+            const taiwanTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)).toISOString().replace('Z', '+08:00');
+            document.getElementById('datetime').textContent = taiwanTime;
         }
 
         // Initialize
@@ -566,16 +607,53 @@
                 return;
             }
 
+            // Validate signer information
+            const signerName = document.getElementById('signerName').value.trim();
+            const signerIdNumber = document.getElementById('signerIdNumber').value.trim();
+            const legalConsent = document.getElementById('legalConsent').checked;
+
+            if (!signerName) {
+                showAlert('Please enter your full name (請輸入姓名)', 'error');
+                return;
+            }
+
+            if (!signerIdNumber) {
+                showAlert('Please enter your National ID or Passport Number (請輸入身分證字號或護照號碼)', 'error');
+                return;
+            }
+
+            if (!legalConsent) {
+                showAlert('Please agree to the legal notice to proceed (請同意法律聲明)', 'error');
+                return;
+            }
+
             try {
                 // Get signature as base64
                 const signatureImage = canvas.toDataURL('image/png');
 
+                // Calculate hash of signature image for integrity
+                const signatureHash = await sha256(signatureImage);
+
+                // Prepare signer information
+                const signerInfo = {
+                    name: signerName,
+                    idNumber: signerIdNumber,
+                    email: document.getElementById('signerEmail').value.trim() || null,
+                    phone: document.getElementById('signerPhone').value.trim() || null
+                };
+
                 // Prepare data
                 const signatureData = {
+                    version: '2.0', // Updated version for Taiwan compliance
                     signId: signId,
                     datetime: document.getElementById('datetime').textContent,
                     deviceId: document.getElementById('deviceId').textContent,
                     signature: signatureImage,
+                    signatureHash: signatureHash,
+                    signerInfo: signerInfo,
+                    legalConsent: true,
+                    jurisdiction: 'TW', // Taiwan
+                    complianceStandard: 'TW Electronic Signatures Act',
                     timestamp: Date.now()
                 };
 
@@ -583,6 +661,8 @@
                 if (uploadedDocument) {
                     signatureData.document = uploadedDocument;
                     signatureData.documentName = uploadedDocumentName;
+                    // Calculate hash of the document for integrity verification
+                    signatureData.documentHash = await sha256(uploadedDocument);
                 }
 
                 // Encrypt data using Sign ID as part of the key
@@ -591,7 +671,8 @@
 
                 // Create file content (signId is removed from plaintext, only in encrypted data)
                 const fileContent = {
-                    version: '1.0',
+                    version: '2.0',
+                    jurisdiction: 'TW',
                     data: encryptedData
                 };
 
