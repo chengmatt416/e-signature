@@ -213,12 +213,12 @@
         <div class="info-section">
             <h2>How It Works</h2>
             <p><strong>1. Create a Signature:</strong> Visit the signing page, draw your signature, and the system automatically captures the date, time, and device information.</p>
-            <p><strong>2. Generate Sign-ID:</strong> A unique Sign-ID is generated for each signature for tracking and verification.</p>
-            <p><strong>3. Encryption:</strong> All data is encrypted using a secure master key before being exported as a .esig file.</p>
-            <p><strong>4. Decrypt & Verify:</strong> Upload the .esig file and optionally enter the Sign-ID to decrypt and verify the signature's authenticity.</p>
+            <p><strong>2. Generate Sign-ID:</strong> A unique Sign-ID is generated for each signature. This Sign-ID acts as your decryption key - keep it safe!</p>
+            <p><strong>3. Encryption:</strong> All data is encrypted using a secure master key combined with your Sign-ID before being exported as a .esig file. The Sign-ID is NOT stored in the file.</p>
+            <p><strong>4. Decrypt & Verify:</strong> Upload the .esig file and enter your Sign-ID to decrypt and verify the signature's authenticity. Without the correct Sign-ID, the file cannot be decrypted.</p>
             
             <div class="security-note">
-                🔐 <strong>Privacy First:</strong> All processing happens entirely in your browser. No data is sent to any server. Your signatures and data remain completely private.
+                🔐 <strong>Privacy First:</strong> All processing happens entirely in your browser. No data is sent to any server. Your signatures and data remain completely private. Only you know your Sign-ID.
             </div>
         </div>
     </div>
