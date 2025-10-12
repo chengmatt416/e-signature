@@ -281,8 +281,8 @@
 
         <div class="upload-section" id="documentUploadSection" onclick="document.getElementById('documentFileInput').click()">
             <div class="upload-icon">📄</div>
-            <div class="upload-text">Optional: Upload Document to Sign</div>
-            <div class="upload-subtext">Click to upload a file that will be encrypted with your signature</div>
+            <div class="upload-text">Optional: Upload Any File to Sign</div>
+            <div class="upload-subtext">Click to upload any file that will be encrypted with your signature</div>
             <input type="file" id="documentFileInput">
         </div>
 
@@ -420,18 +420,47 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            // Add file size check (limit to 50MB to avoid browser issues)
+            const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+            if (file.size > maxSize) {
+                showAlert('File too large! Please upload a file smaller than 50MB.', 'error');
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = function(event) {
-                uploadedDocument = event.target.result;
-                uploadedDocumentName = file.name;
-                const uploadText = documentUploadSection.querySelector('.upload-text');
-                uploadText.textContent = '✓ ' + file.name;
-                showAlert('Document uploaded successfully', 'success');
+                try {
+                    uploadedDocument = event.target.result;
+                    uploadedDocumentName = file.name;
+                    const uploadText = documentUploadSection.querySelector('.upload-text');
+                    uploadText.textContent = '✓ ' + file.name;
+                    showAlert('Document uploaded successfully', 'success');
+                } catch (error) {
+                    showAlert('Error loading file: ' + error.message, 'error');
+                    uploadedDocument = null;
+                    uploadedDocumentName = null;
+                }
+            };
+            reader.onerror = function() {
+                showAlert('Error reading file. Please try again.', 'error');
+                uploadedDocument = null;
+                uploadedDocumentName = null;
             };
             reader.readAsDataURL(file);
         }
 
-        // Validate activation code
+        // Simple hash function for code validation (must match admin.html)
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36).toUpperCase();
+        }
+
+        // Validate activation code cryptographically
         function validateActivationCode() {
             const code = document.getElementById('activationCodeInput').value.trim();
             
@@ -440,24 +469,42 @@
                 return;
             }
 
-            const codes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            const foundCode = codes.find(c => c.code === code && !c.used);
+            // Expected format: AC-TIMESTAMP-RANDOM-SIGNATURE
+            const parts = code.split('-');
+            if (parts.length !== 4 || parts[0] !== 'AC') {
+                showAlert('Invalid activation code format!', 'error');
+                return;
+            }
 
-            if (foundCode) {
+            const timestamp = parts[1];
+            const random = parts[2];
+            const providedSignature = parts[3];
+
+            // Verify the code hasn't expired (optional: codes valid for 30 days)
+            const codeTime = parseInt(timestamp);
+            const now = Date.now();
+            const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+            
+            if (now - codeTime > thirtyDays) {
+                showAlert('Activation code has expired! Please request a new code.', 'error');
+                return;
+            }
+
+            // Validate signature using the known admin passcode
+            const ADMIN_PASSCODE = '17808'; // Must match admin.html
+            const secret = `${timestamp}:${random}:${ADMIN_PASSCODE}`;
+            const expectedSignature = simpleHash(secret);
+
+            if (providedSignature === expectedSignature) {
                 activationCodeValid = true;
                 
-                // Mark code as used
-                const codeIndex = codes.findIndex(c => c.code === code);
-                codes[codeIndex].used = true;
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(codes));
-
                 // Show main content
                 document.getElementById('activationSection').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
                 
                 showAlert('Activation code validated successfully!', 'success');
             } else {
-                showAlert('Invalid or already used activation code!', 'error');
+                showAlert('Invalid activation code!', 'error');
             }
         }
 
