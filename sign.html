@@ -49,6 +49,67 @@
             margin-bottom: 20px;
         }
 
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        .input-section label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .input-section input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .input-section input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .upload-section {
+            border: 3px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 0.85em;
+        }
+
+        #documentFileInput {
+            display: none;
+        }
+
+
         .info-item {
             margin-bottom: 10px;
             display: flex;
@@ -196,6 +257,13 @@
 
         <div id="alert" class="alert"></div>
 
+        <div class="input-section" id="activationSection">
+            <label for="activationCodeInput">Activation Code (required):</label>
+            <input type="text" id="activationCodeInput" placeholder="Enter activation code from admin">
+            <button class="btn-primary" onclick="validateActivationCode()" style="margin-top: 10px; width: 100%;">Validate Code</button>
+        </div>
+
+        <div id="mainContent" style="display: none;">
         <div class="info-section">
             <div class="info-item">
                 <span class="info-label">Sign ID:</span>
@@ -211,6 +279,13 @@
             </div>
         </div>
 
+        <div class="upload-section" id="documentUploadSection" onclick="document.getElementById('documentFileInput').click()">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">Optional: Upload Document to Sign</div>
+            <div class="upload-subtext">Click to upload a file that will be encrypted with your signature</div>
+            <input type="file" id="documentFileInput">
+        </div>
+
         <div class="signature-section">
             <h2>Draw Your Signature</h2>
             <canvas id="signatureCanvas" width="720" height="300"></canvas>
@@ -220,11 +295,17 @@
             <button class="btn-secondary" onclick="clearSignature()">Clear</button>
             <button class="btn-primary" onclick="saveSignature()">Save & Export</button>
         </div>
+        </div>
     </div>
 
     <script>
         // Configuration
         const MASTER_KEY = 'e-signature-master-key-2024-secure-v1'; // Master encryption key
+        const STORAGE_KEY = 'esig-activation-codes';
+
+        let activationCodeValid = false;
+        let uploadedDocument = null;
+        let uploadedDocumentName = null;
 
         // Canvas setup
         const canvas = document.getElementById('signatureCanvas');
@@ -329,6 +410,57 @@
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
 
+        // Document file upload handling
+        const documentFileInput = document.getElementById('documentFileInput');
+        const documentUploadSection = document.getElementById('documentUploadSection');
+
+        documentFileInput.addEventListener('change', handleDocumentSelect);
+
+        function handleDocumentSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                uploadedDocument = event.target.result;
+                uploadedDocumentName = file.name;
+                const uploadText = documentUploadSection.querySelector('.upload-text');
+                uploadText.textContent = '✓ ' + file.name;
+                showAlert('Document uploaded successfully', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Validate activation code
+        function validateActivationCode() {
+            const code = document.getElementById('activationCodeInput').value.trim();
+            
+            if (!code) {
+                showAlert('Please enter an activation code', 'error');
+                return;
+            }
+
+            const codes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const foundCode = codes.find(c => c.code === code && !c.used);
+
+            if (foundCode) {
+                activationCodeValid = true;
+                
+                // Mark code as used
+                const codeIndex = codes.findIndex(c => c.code === code);
+                codes[codeIndex].used = true;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(codes));
+
+                // Show main content
+                document.getElementById('activationSection').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                
+                showAlert('Activation code validated successfully!', 'success');
+            } else {
+                showAlert('Invalid or already used activation code!', 'error');
+            }
+        }
+
         // Clear signature
         function clearSignature() {
             ctx.fillStyle = 'white';
@@ -351,6 +483,11 @@
 
         // Save and export signature
         async function saveSignature() {
+            if (!activationCodeValid) {
+                showAlert('Please validate your activation code first', 'error');
+                return;
+            }
+
             if (!hasSignature) {
                 showAlert('Please draw your signature first', 'error');
                 return;
@@ -369,6 +506,12 @@
                     timestamp: Date.now()
                 };
 
+                // Add document if uploaded
+                if (uploadedDocument) {
+                    signatureData.document = uploadedDocument;
+                    signatureData.documentName = uploadedDocumentName;
+                }
+
                 // Encrypt data using Sign ID as part of the key
                 const encryptionKey = MASTER_KEY + signId;
                 const encryptedData = encryptData(signatureData, encryptionKey);
@@ -379,8 +522,8 @@
                     data: encryptedData
                 };
 
-                // Download file
-                const blob = new Blob([JSON.stringify(fileContent, null, 2)], { type: 'application/json' });
+                // Download file with correct MIME type
+                const blob = new Blob([JSON.stringify(fileContent, null, 2)], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;

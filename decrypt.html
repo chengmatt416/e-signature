@@ -289,8 +289,8 @@
         <div class="upload-section" id="uploadSection" onclick="document.getElementById('fileInput').click()">
             <div class="upload-icon">📁</div>
             <div class="upload-text">Click to upload or drag & drop</div>
-            <div class="upload-subtext">Upload .esig signature file</div>
-            <input type="file" id="fileInput" accept=".esig">
+            <div class="upload-subtext">Upload .esig or .esig.json signature file</div>
+            <input type="file" id="fileInput" accept=".esig,.esig.json">
         </div>
 
         <div class="input-section">
@@ -332,6 +332,12 @@
             <div class="signature-display">
                 <h2>Signature</h2>
                 <img id="signatureImage" src="" alt="Signature">
+            </div>
+
+            <div id="documentSection" class="signature-display" style="display: none;">
+                <h2>Attached Document</h2>
+                <div class="info-value" id="documentName" style="margin-bottom: 10px;"></div>
+                <button class="btn-success" onclick="downloadDocument()">Download Document</button>
             </div>
 
             <div class="button-group">
@@ -380,7 +386,7 @@
         }
 
         function handleFile(file) {
-            if (!file.name.endsWith('.esig')) {
+            if (!file.name.endsWith('.esig') && !file.name.endsWith('.esig.json')) {
                 showAlert('Please upload a .esig file', 'error');
                 return;
             }
@@ -467,6 +473,14 @@
             
             document.getElementById('signatureImage').src = data.signature;
 
+            // Show document section if document exists
+            if (data.document && data.documentName) {
+                document.getElementById('documentSection').style.display = 'block';
+                document.getElementById('documentName').textContent = 'File: ' + data.documentName;
+            } else {
+                document.getElementById('documentSection').style.display = 'none';
+            }
+
             const statusBadge = document.getElementById('statusBadge');
             if (verified) {
                 statusBadge.textContent = '✓ Verified & Authentic';
@@ -498,6 +512,22 @@
             a.click();
             document.body.removeChild(a);
             showAlert('Signature image downloaded', 'success');
+        }
+
+        // Download document
+        function downloadDocument() {
+            if (!decryptedData || !decryptedData.document) {
+                showAlert('No document available to download', 'error');
+                return;
+            }
+
+            const a = document.createElement('a');
+            a.href = decryptedData.document;
+            a.download = decryptedData.documentName || 'document';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showAlert('Document downloaded', 'success');
         }
 
         // Reset
