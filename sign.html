@@ -281,8 +281,8 @@
 
         <div class="upload-section" id="documentUploadSection" onclick="document.getElementById('documentFileInput').click()">
             <div class="upload-icon">📄</div>
-            <div class="upload-text">Optional: Upload Document to Sign</div>
-            <div class="upload-subtext">Click to upload a file that will be encrypted with your signature</div>
+            <div class="upload-text">Optional: Upload Any File to Sign</div>
+            <div class="upload-subtext">Any file type supported - will be encrypted with your signature (max 10MB)</div>
             <input type="file" id="documentFileInput">
         </div>
 
@@ -302,10 +302,55 @@
         // Configuration
         const MASTER_KEY = 'e-signature-master-key-2024-secure-v1'; // Master encryption key
         const STORAGE_KEY = 'esig-activation-codes';
+        const ACTIVATION_SECRET = 'e-signature-activation-secret-2024-v1'; // Must match admin.html
 
         let activationCodeValid = false;
         let uploadedDocument = null;
         let uploadedDocumentName = null;
+
+        // Decryption function for activation codes
+        function decryptActivationCode(encryptedData, key) {
+            try {
+                const decoded = atob(encryptedData); // Base64 decode
+                let decrypted = '';
+                for (let i = 0; i < decoded.length; i++) {
+                    decrypted += String.fromCharCode(
+                        decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+                    );
+                }
+                return JSON.parse(decrypted);
+            } catch (error) {
+                return null;
+            }
+        }
+
+        // Validate activation code using cryptographic verification
+        function isValidCryptographicCode(code) {
+            if (!code || !code.startsWith('ESIG-')) {
+                return false;
+            }
+            
+            try {
+                // Extract the encrypted part
+                let encryptedPart = code.substring(5); // Remove 'ESIG-' prefix
+                
+                // Reverse the character replacement
+                encryptedPart = encryptedPart.split('').map(c => {
+                    return c === 'A' ? '+' : c === 'B' ? '/' : c;
+                }).join('');
+                
+                // Try to decrypt
+                const decrypted = decryptActivationCode(encryptedPart, ACTIVATION_SECRET);
+                
+                if (decrypted && decrypted.valid === true) {
+                    return true;
+                }
+            } catch (error) {
+                return false;
+            }
+            
+            return false;
+        }
 
         // Canvas setup
         const canvas = document.getElementById('signatureCanvas');
@@ -420,6 +465,13 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            // Check file size (limit to 10MB to prevent browser memory issues)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                showAlert('File is too large. Maximum size is 10MB.', 'error');
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = function(event) {
                 uploadedDocument = event.target.result;
@@ -428,6 +480,11 @@
                 uploadText.textContent = '✓ ' + file.name;
                 showAlert('Document uploaded successfully', 'success');
             };
+            reader.onerror = function() {
+                showAlert('Error reading file. Please try again.', 'error');
+            };
+            
+            // Read as data URL to support any file type
             reader.readAsDataURL(file);
         }
 
@@ -440,6 +497,19 @@
                 return;
             }
 
+            // First try cryptographic validation (cross-device)
+            if (isValidCryptographicCode(code)) {
+                activationCodeValid = true;
+                
+                // Show main content
+                document.getElementById('activationSection').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                
+                showAlert('Activation code validated successfully! (Cross-device code)', 'success');
+                return;
+            }
+
+            // Fallback to localStorage validation (for backward compatibility with old codes)
             const codes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             const foundCode = codes.find(c => c.code === code && !c.used);
 
@@ -455,7 +525,7 @@
                 document.getElementById('activationSection').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
                 
-                showAlert('Activation code validated successfully!', 'success');
+                showAlert('Activation code validated successfully! (Legacy code)', 'success');
             } else {
                 showAlert('Invalid or already used activation code!', 'error');
             }
