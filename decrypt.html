@@ -401,10 +401,17 @@
         function decryptData(encryptedData, key) {
             try {
                 const decoded = atob(encryptedData); // Base64 decode
-                let decrypted = '';
+                // Convert binary string back to UTF-8 bytes
+                const bytes = new Uint8Array(decoded.length);
                 for (let i = 0; i < decoded.length; i++) {
+                    bytes[i] = decoded.charCodeAt(i);
+                }
+                const encrypted = new TextDecoder().decode(bytes);
+                
+                let decrypted = '';
+                for (let i = 0; i < encrypted.length; i++) {
                     decrypted += String.fromCharCode(
-                        decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+                        encrypted.charCodeAt(i) ^ key.charCodeAt(i % key.length)
                     );
                 }
                 return JSON.parse(decrypted);
