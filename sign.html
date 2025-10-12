@@ -369,13 +369,13 @@
                     timestamp: Date.now()
                 };
 
-                // Encrypt data
-                const encryptedData = encryptData(signatureData, MASTER_KEY);
+                // Encrypt data using Sign ID as part of the key
+                const encryptionKey = MASTER_KEY + signId;
+                const encryptedData = encryptData(signatureData, encryptionKey);
 
-                // Create file content
+                // Create file content (signId is removed from plaintext, only in encrypted data)
                 const fileContent = {
                     version: '1.0',
-                    signId: signId,
                     data: encryptedData
                 };
 
@@ -384,13 +384,13 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `signature-${signId}.esig`;
+                a.download = `signature-${Date.now()}.esig`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                showAlert('Signature saved successfully! Sign ID: ' + signId, 'success');
+                showAlert('Signature saved successfully! Keep your Sign ID safe: ' + signId, 'success');
             } catch (error) {
                 showAlert('Error saving signature: ' + error.message, 'error');
             }
