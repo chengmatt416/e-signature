@@ -387,10 +387,8 @@
             // Encrypt the code data
             const encryptedCode = encryptActivationCode(codeData, ACTIVATION_SECRET);
             
-            // Create a readable code format
-            const code = 'ESIG-' + encryptedCode.replace(/[+/=]/g, (c) => {
-                return c === '+' ? 'A' : c === '/' ? 'B' : '';
-            }).substring(0, 20);
+            // Create a readable code format (replace problematic characters)
+            const code = 'ESIG-' + encryptedCode.replace(/\+/g, 'P').replace(/\//g, 'S').replace(/=/g, '');
             
             currentCode = code;
 

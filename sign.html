@@ -335,9 +335,12 @@
                 let encryptedPart = code.substring(5); // Remove 'ESIG-' prefix
                 
                 // Reverse the character replacement
-                encryptedPart = encryptedPart.split('').map(c => {
-                    return c === 'A' ? '+' : c === 'B' ? '/' : c;
-                }).join('');
+                encryptedPart = encryptedPart.replace(/P/g, '+').replace(/S/g, '/');
+                
+                // Add back padding if needed
+                while (encryptedPart.length % 4 !== 0) {
+                    encryptedPart += '=';
+                }
                 
                 // Try to decrypt
                 const decrypted = decryptActivationCode(encryptedPart, ACTIVATION_SECRET);
