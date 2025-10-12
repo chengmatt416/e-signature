@@ -130,6 +130,91 @@
             display: none;
         }
 
+        .file-preview-btn {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .file-preview-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 1000px;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 2em;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #000;
+        }
+
+        .file-preview-container {
+            width: 100%;
+            min-height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .file-preview-container iframe,
+        .file-preview-container img {
+            max-width: 100%;
+            max-height: 80vh;
+        }
+
+        .file-preview-container pre {
+            text-align: left;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 70vh;
+            overflow: auto;
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
 
         .info-item {
             margin-bottom: 10px;
@@ -371,11 +456,12 @@
             </div>
         </div>
 
-        <div class="upload-section" id="documentUploadSection" onclick="document.getElementById('documentFileInput').click()">
+        <div class="upload-section" id="documentUploadSection" onclick="handleUploadClick(event)">
             <div class="upload-icon">📄</div>
             <div class="upload-text" data-en="Optional: Upload Any File to Sign" data-zh="選填：上傳要簽署的檔案">Optional: Upload Any File to Sign</div>
             <div class="upload-subtext" data-en="Click to upload any file that will be encrypted with your signature" data-zh="點擊上傳要與簽章一起加密的檔案">Click to upload any file that will be encrypted with your signature</div>
             <input type="file" id="documentFileInput">
+            <button id="viewFileBtn" class="file-preview-btn" style="display: none;" onclick="viewUploadedFile(event)" data-en="👁️ View File" data-zh="👁️ 檢視檔案">👁️ View File</button>
         </div>
 
         <div class="signature-section">
@@ -390,6 +476,17 @@
         </div>
     </div>
 
+    <!-- File Preview Modal -->
+    <div id="filePreviewModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeFilePreview()">&times;</button>
+            <h2 id="previewTitle" style="margin-bottom: 20px; color: #333;">File Preview</h2>
+            <div id="filePreviewContainer" class="file-preview-container">
+                <p>Loading preview...</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Configuration
         const MASTER_KEY = 'e-signature-master-key-2024-secure-v1'; // Master encryption key
@@ -398,6 +495,7 @@
         let activationCodeValid = false;
         let uploadedDocument = null;
         let uploadedDocumentName = null;
+        let uploadedFileType = null;
 
         // Canvas setup
         const canvas = document.getElementById('signatureCanvas');
@@ -543,6 +641,13 @@
 
         documentFileInput.addEventListener('change', handleDocumentSelect);
 
+        function handleUploadClick(event) {
+            // Only trigger file input if not clicking the view button
+            if (!event.target.classList.contains('file-preview-btn')) {
+                document.getElementById('documentFileInput').click();
+            }
+        }
+
         function handleDocumentSelect(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -559,21 +664,117 @@
                 try {
                     uploadedDocument = event.target.result;
                     uploadedDocumentName = file.name;
+                    uploadedFileType = file.type;
                     const uploadText = documentUploadSection.querySelector('.upload-text');
                     uploadText.textContent = '✓ ' + file.name;
+                    // Show the view button
+                    document.getElementById('viewFileBtn').style.display = 'inline-block';
                     showAlert('uploadSuccess', 'success');
                 } catch (error) {
                     showAlert(messages.uploadError[currentLang] + error.message, 'error');
                     uploadedDocument = null;
                     uploadedDocumentName = null;
+                    uploadedFileType = null;
                 }
             };
             reader.onerror = function() {
                 showAlert('readError', 'error');
                 uploadedDocument = null;
                 uploadedDocumentName = null;
+                uploadedFileType = null;
             };
             reader.readAsDataURL(file);
+        }
+
+        function viewUploadedFile(event) {
+            event.stopPropagation();
+            
+            if (!uploadedDocument || !uploadedDocumentName) {
+                showAlert('noFileToView', 'error');
+                return;
+            }
+
+            const modal = document.getElementById('filePreviewModal');
+            const container = document.getElementById('filePreviewContainer');
+            const title = document.getElementById('previewTitle');
+            
+            title.textContent = uploadedDocumentName;
+            container.innerHTML = '';
+
+            // Determine file type and render accordingly
+            const fileExt = uploadedDocumentName.split('.').pop().toLowerCase();
+            
+            if (uploadedFileType.startsWith('image/')) {
+                // Image preview
+                const img = document.createElement('img');
+                img.src = uploadedDocument;
+                img.alt = uploadedDocumentName;
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                container.appendChild(img);
+            } else if (uploadedFileType === 'application/pdf' || fileExt === 'pdf') {
+                // PDF preview
+                const iframe = document.createElement('iframe');
+                iframe.src = uploadedDocument;
+                iframe.style.width = '100%';
+                iframe.style.height = '700px';
+                iframe.style.border = 'none';
+                container.appendChild(iframe);
+            } else if (uploadedFileType.startsWith('text/') || ['txt', 'csv', 'json', 'xml', 'html', 'css', 'js'].includes(fileExt)) {
+                // Text file preview
+                fetch(uploadedDocument)
+                    .then(response => response.blob())
+                    .then(blob => blob.text())
+                    .then(text => {
+                        const pre = document.createElement('pre');
+                        pre.textContent = text;
+                        pre.style.maxHeight = '700px';
+                        pre.style.overflow = 'auto';
+                        container.appendChild(pre);
+                    })
+                    .catch(error => {
+                        container.innerHTML = '<p style="color: #721c24;">Error loading text file preview.</p>';
+                    });
+            } else if (uploadedFileType.startsWith('video/')) {
+                // Video preview
+                const video = document.createElement('video');
+                video.src = uploadedDocument;
+                video.controls = true;
+                video.style.maxWidth = '100%';
+                video.style.maxHeight = '700px';
+                container.appendChild(video);
+            } else if (uploadedFileType.startsWith('audio/')) {
+                // Audio preview
+                const audio = document.createElement('audio');
+                audio.src = uploadedDocument;
+                audio.controls = true;
+                audio.style.width = '100%';
+                container.appendChild(audio);
+            } else {
+                // Unsupported file type
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <p style="font-size: 3em; margin-bottom: 20px;">📄</p>
+                        <p style="color: #666; font-size: 1.1em; margin-bottom: 10px;">Preview not available for this file type</p>
+                        <p style="color: #999; font-size: 0.9em;">File: ${uploadedDocumentName}</p>
+                        <p style="color: #999; font-size: 0.9em;">Type: ${uploadedFileType || 'Unknown'}</p>
+                    </div>
+                `;
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeFilePreview() {
+            document.getElementById('filePreviewModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('filePreviewModal');
+            if (event.target === modal) {
+                closeFilePreview();
+            }
         }
 
         // Simple hash function for code validation (must match admin.html)
@@ -760,6 +961,7 @@
             uploadSuccess: { en: 'Document uploaded successfully', zh: '文件上傳成功' },
             uploadError: { en: 'Error loading file: ', zh: '載入檔案時發生錯誤：' },
             readError: { en: 'Error reading file. Please try again.', zh: '讀取檔案時發生錯誤，請重試。' },
+            noFileToView: { en: 'No file to view. Please upload a file first.', zh: '沒有檔案可檢視。請先上傳檔案。' },
             enterCode: { en: 'Please enter an activation code', zh: '請輸入啟用碼' },
             invalidFormat: { en: 'Invalid activation code format!', zh: '啟用碼格式錯誤！' },
             codeExpired: { en: 'Activation code has expired! Please request a new code.', zh: '啟用碼已過期！請申請新的啟用碼。' },
