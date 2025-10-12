@@ -521,11 +521,16 @@
             const jsonStr = JSON.stringify(data);
             let encrypted = '';
             for (let i = 0; i < jsonStr.length; i++) {
-                encrypted += String.fromCharCode(
-                    jsonStr.charCodeAt(i) ^ key.charCodeAt(i % key.length)
-                );
+                const charCode = jsonStr.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+                encrypted += String.fromCharCode(charCode);
             }
-            return btoa(encrypted); // Base64 encode
+            // Convert to UTF-8 bytes then base64 to handle all characters
+            const utf8Bytes = new TextEncoder().encode(encrypted);
+            let binary = '';
+            for (let i = 0; i < utf8Bytes.length; i++) {
+                binary += String.fromCharCode(utf8Bytes[i]);
+            }
+            return btoa(binary);
         }
 
         // Save and export signature
