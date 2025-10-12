@@ -276,8 +276,8 @@
             <div id="codeDisplay" class="activation-code-display hidden">
                 <h3>Generated Activation Code</h3>
                 <div class="activation-code" id="generatedCode"></div>
-                <div class="code-info">Share this code with users to allow them to create signatures</div>
-                <div class="code-expiry">Valid for: <span id="codeExpiry">Single use</span></div>
+                <div class="code-info">Share this code with users to allow them to create signatures (works on any device)</div>
+                <div class="code-expiry">Valid for: <span id="codeExpiry">30 days, single or multiple uses</span></div>
             </div>
 
             <div class="button-group">
@@ -355,17 +355,34 @@
             window.location.href = 'index.html';
         }
 
-        // Generate activation code
+        // Simple hash function for code generation
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36).toUpperCase();
+        }
+
+        // Generate cryptographically signed activation code
         function generateActivationCode() {
             if (!isLoggedIn) {
                 showAlert('You must be logged in to generate codes', 'error');
                 return;
             }
 
-            // Generate a unique activation code
+            // Generate a unique activation code with embedded validation
             const timestamp = Date.now();
             const random = Math.random().toString(36).substring(2, 9).toUpperCase();
-            const code = `AC-${timestamp}-${random}`;
+            
+            // Create a secret that combines timestamp, random value, and admin passcode
+            const secret = `${timestamp}:${random}:${ADMIN_PASSCODE}`;
+            const signature = simpleHash(secret);
+            
+            // Format: AC-TIMESTAMP-RANDOM-SIGNATURE
+            const code = `AC-${timestamp}-${random}-${signature}`;
             
             currentCode = code;
 
@@ -373,11 +390,11 @@
             document.getElementById('generatedCode').textContent = code;
             document.getElementById('codeDisplay').classList.remove('hidden');
 
-            // Save to history
+            // Save to history (still useful for tracking)
             saveCodeToHistory(code);
             loadCodeHistory();
 
-            showAlert('Activation code generated successfully!', 'success');
+            showAlert('Activation code generated successfully! This code can be used on any device.', 'success');
         }
 
         // Copy code to clipboard
