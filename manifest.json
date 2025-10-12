@@ -2,7 +2,7 @@
   "name": "E-Signature - Secure Digital Signatures",
   "short_name": "E-Signature",
   "description": "A secure, client-side digital signature application that runs entirely in your browser",
-  "start_url": "/e-signature/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",

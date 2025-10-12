@@ -1,11 +1,11 @@
 // Service Worker for E-Signature PWA
 const CACHE_NAME = 'e-signature-v1';
 const urlsToCache = [
-  '/e-signature/',
-  '/e-signature/index.html',
-  '/e-signature/sign.html',
-  '/e-signature/decrypt.html',
-  '/e-signature/admin.html'
+  './',
+  './index.html',
+  './sign.html',
+  './decrypt.html',
+  './admin.html'
 ];
 
 // Install event - cache resources
