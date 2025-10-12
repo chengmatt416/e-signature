@@ -298,30 +298,60 @@
                 padding: 20px;
             }
         }
+
+        .lang-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #f5576c;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #f5576c;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .lang-toggle:hover {
+            background: #f5576c;
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .lang-toggle {
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+        }
     </style>
 </head>
 <body>
+    <button class="lang-toggle" onclick="toggleLanguage()" id="langToggle">中文</button>
     <div class="container">
-        <h1>🔓 E-Signature Decrypt</h1>
-        <p class="subtitle">Verify and decrypt signed documents</p>
+        <h1 data-en="🔓 E-Signature Decrypt" data-zh="🔓 電子簽章解密">🔓 E-Signature Decrypt</h1>
+        <p class="subtitle" data-en="Verify and decrypt signed documents" data-zh="驗證並解密已簽署的文件">Verify and decrypt signed documents</p>
 
         <div id="alert" class="alert"></div>
 
         <div class="upload-section" id="uploadSection" onclick="document.getElementById('fileInput').click()">
             <div class="upload-icon">📁</div>
-            <div class="upload-text">Click to upload or drag & drop</div>
-            <div class="upload-subtext">Upload .esig or .esig.json signature file</div>
+            <div class="upload-text" data-en="Click to upload or drag & drop" data-zh="點擊上傳或拖放檔案">Click to upload or drag & drop</div>
+            <div class="upload-subtext" data-en="Upload .esig or .esig.json signature file" data-zh="上傳 .esig 或 .esig.json 簽章檔案">Upload .esig or .esig.json signature file</div>
             <input type="file" id="fileInput" accept=".esig,.esig.json">
         </div>
 
         <div class="input-section">
-            <label for="signIdInput">Sign ID (required for decryption):</label>
-            <input type="text" id="signIdInput" placeholder="Enter your Sign ID (e.g., SIG-1234567890-ABC123)" required>
+            <label for="signIdInput" data-en="Sign ID (required for decryption):" data-zh="簽章編號（解密所需）：">Sign ID (required for decryption):</label>
+            <input type="text" id="signIdInput" data-placeholder-en="Enter your Sign ID (e.g., SIG-1234567890-ABC123)" data-placeholder-zh="輸入您的簽章編號（例如：SIG-1234567890-ABC123）" placeholder="Enter your Sign ID (e.g., SIG-1234567890-ABC123)" required>
         </div>
 
         <div class="button-group">
-            <button class="btn-primary" onclick="decryptSignature()">Decrypt & Verify</button>
-            <button class="btn-secondary" onclick="reset()">Reset</button>
+            <button class="btn-primary" onclick="decryptSignature()" data-en="Decrypt & Verify" data-zh="解密並驗證">Decrypt & Verify</button>
+            <button class="btn-secondary" onclick="reset()" data-en="Reset" data-zh="重設">Reset</button>
         </div>
 
         <div id="resultSection" class="result-section">
@@ -333,64 +363,64 @@
 
             <div class="info-section">
                 <div class="info-item">
-                    <div class="info-label">Sign ID:</div>
+                    <div class="info-label" data-en="Sign ID:" data-zh="簽章編號:">Sign ID:</div>
                     <div class="info-value" id="resultSignId"></div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Signer Name (簽署人姓名):</div>
+                    <div class="info-label" data-en="Signer Name:" data-zh="簽署人姓名:">Signer Name:</div>
                     <div class="info-value" id="resultSignerName"></div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">ID Number (身分證字號):</div>
+                    <div class="info-label" data-en="ID Number:" data-zh="身分證字號:">ID Number:</div>
                     <div class="info-value" id="resultSignerIdNumber"></div>
                 </div>
                 <div class="info-item" id="resultEmailItem" style="display: none;">
-                    <div class="info-label">Email:</div>
+                    <div class="info-label" data-en="Email:" data-zh="電子郵件:">Email:</div>
                     <div class="info-value" id="resultSignerEmail"></div>
                 </div>
                 <div class="info-item" id="resultPhoneItem" style="display: none;">
-                    <div class="info-label">Phone:</div>
+                    <div class="info-label" data-en="Phone:" data-zh="電話號碼:">Phone:</div>
                     <div class="info-value" id="resultSignerPhone"></div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Date & Time (ISO 8601):</div>
+                    <div class="info-label" data-en="Date & Time (ISO 8601):" data-zh="日期與時間 (ISO 8601):">Date & Time (ISO 8601):</div>
                     <div class="info-value" id="resultDateTime"></div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Device ID:</div>
+                    <div class="info-label" data-en="Device ID:" data-zh="裝置編號:">Device ID:</div>
                     <div class="info-value" id="resultDeviceId"></div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Timestamp:</div>
+                    <div class="info-label" data-en="Timestamp:" data-zh="時間戳記:">Timestamp:</div>
                     <div class="info-value" id="resultTimestamp"></div>
                 </div>
                 <div class="info-item" id="resultJurisdictionItem" style="display: none;">
-                    <div class="info-label">Jurisdiction:</div>
+                    <div class="info-label" data-en="Jurisdiction:" data-zh="管轄權:">Jurisdiction:</div>
                     <div class="info-value" id="resultJurisdiction"></div>
                 </div>
                 <div class="info-item" id="resultComplianceItem" style="display: none;">
-                    <div class="info-label">Compliance Standard:</div>
+                    <div class="info-label" data-en="Compliance Standard:" data-zh="合規標準:">Compliance Standard:</div>
                     <div class="info-value" id="resultCompliance"></div>
                 </div>
                 <div class="info-item" id="resultIntegrityItem" style="display: none;">
-                    <div class="info-label">Integrity Verification:</div>
+                    <div class="info-label" data-en="Integrity Verification:" data-zh="完整性驗證:">Integrity Verification:</div>
                     <div class="info-value" id="resultIntegrity"></div>
                 </div>
             </div>
 
             <div class="signature-display">
-                <h2>Signature</h2>
+                <h2 data-en="Signature" data-zh="簽名">Signature</h2>
                 <img id="signatureImage" src="" alt="Signature">
             </div>
 
             <div id="documentSection" class="signature-display" style="display: none;">
-                <h2>Attached Document</h2>
+                <h2 data-en="Attached Document" data-zh="附加文件">Attached Document</h2>
                 <div class="info-value" id="documentName" style="margin-bottom: 10px;"></div>
-                <button class="btn-success" onclick="downloadDocument()">Download Document</button>
+                <button class="btn-success" onclick="downloadDocument()" data-en="Download Document" data-zh="下載文件">Download Document</button>
             </div>
 
             <div class="button-group">
-                <button class="btn-success" onclick="downloadSignatureImage()">Download Signature Image</button>
+                <button class="btn-success" onclick="downloadSignatureImage()" data-en="Download Signature Image" data-zh="下載簽名圖片">Download Signature Image</button>
             </div>
         </div>
     </div>
@@ -687,6 +717,36 @@
                 alert.classList.remove('show');
             }, 5000);
         }
+        
+        // Language switching functionality
+        let currentLang = localStorage.getItem('esig-lang') || 'en';
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
+            localStorage.setItem('esig-lang', currentLang);
+            applyLanguage();
+        }
+        
+        function applyLanguage() {
+            const elements = document.querySelectorAll('[data-en][data-zh]');
+            elements.forEach(el => {
+                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel')) {
+                    // For input placeholders
+                    if (el.hasAttribute('data-placeholder-en') && el.hasAttribute('data-placeholder-zh')) {
+                        el.placeholder = currentLang === 'en' ? el.getAttribute('data-placeholder-en') : el.getAttribute('data-placeholder-zh');
+                    }
+                } else {
+                    // For regular text content
+                    el.textContent = currentLang === 'en' ? el.getAttribute('data-en') : el.getAttribute('data-zh');
+                }
+            });
+            
+            // Update language toggle button
+            document.getElementById('langToggle').textContent = currentLang === 'en' ? '中文' : 'English';
+        }
+        
+        // Apply language on page load
+        applyLanguage();
         
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {

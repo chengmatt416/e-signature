@@ -186,69 +186,131 @@
                 width: 100%;
             }
         }
+
+        .lang-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #667eea;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .lang-toggle:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .lang-toggle {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 0.8em;
+                z-index: 1000;
+            }
+        }
     </style>
 </head>
 <body>
+    <button class="lang-toggle" onclick="toggleLanguage()" id="langToggle">中文</button>
     <div class="container">
-        <h1>🔐 E-Signature</h1>
-        <p class="subtitle">Secure, Client-Side Digital Signatures</p>
+        <h1 data-en="🔐 E-Signature" data-zh="🔐 電子簽章">🔐 E-Signature</h1>
+        <p class="subtitle" data-en="Secure, Client-Side Digital Signatures" data-zh="安全的客戶端數位簽章">Secure, Client-Side Digital Signatures</p>
 
         <div class="features">
             <div class="feature">
                 <div class="feature-icon">✍️</div>
-                <div class="feature-title">Draw Signature</div>
-                <div class="feature-desc">Create your unique digital signature with our intuitive canvas</div>
+                <div class="feature-title" data-en="Draw Signature" data-zh="繪製簽名">Draw Signature</div>
+                <div class="feature-desc" data-en="Create your unique digital signature with our intuitive canvas" data-zh="使用我們的直覺式畫布建立您的獨特數位簽名">Create your unique digital signature with our intuitive canvas</div>
             </div>
             <div class="feature">
                 <div class="feature-icon">🔒</div>
-                <div class="feature-title">Encrypted Storage</div>
-                <div class="feature-desc">All data encrypted with secure master key</div>
+                <div class="feature-title" data-en="Encrypted Storage" data-zh="加密儲存">Encrypted Storage</div>
+                <div class="feature-desc" data-en="All data encrypted with secure master key" data-zh="所有資料均使用安全主密鑰加密">All data encrypted with secure master key</div>
             </div>
             <div class="feature">
                 <div class="feature-icon">📅</div>
-                <div class="feature-title">Auto-Fill Data</div>
-                <div class="feature-desc">Automatic date, time, and device ID capture</div>
+                <div class="feature-title" data-en="Auto-Fill Data" data-zh="自動填入資料">Auto-Fill Data</div>
+                <div class="feature-desc" data-en="Automatic date, time, and device ID capture" data-zh="自動擷取日期、時間和裝置編號">Automatic date, time, and device ID capture</div>
             </div>
             <div class="feature">
                 <div class="feature-icon">🆔</div>
-                <div class="feature-title">Unique Sign-ID</div>
-                <div class="feature-desc">Each signature gets a unique identifier</div>
+                <div class="feature-title" data-en="Unique Sign-ID" data-zh="唯一簽章編號">Unique Sign-ID</div>
+                <div class="feature-desc" data-en="Each signature gets a unique identifier" data-zh="每個簽章都有唯一的識別碼">Each signature gets a unique identifier</div>
             </div>
             <div class="feature">
                 <div class="feature-icon">💾</div>
-                <div class="feature-title">Export & Share</div>
-                <div class="feature-desc">Download encrypted .esig files</div>
+                <div class="feature-title" data-en="Export & Share" data-zh="匯出與分享">Export & Share</div>
+                <div class="feature-desc" data-en="Download encrypted .esig files" data-zh="下載加密的 .esig 檔案">Download encrypted .esig files</div>
             </div>
             <div class="feature">
                 <div class="feature-icon">✅</div>
-                <div class="feature-title">Verify & Decrypt</div>
-                <div class="feature-desc">Validate signature authenticity</div>
+                <div class="feature-title" data-en="Verify & Decrypt" data-zh="驗證與解密">Verify & Decrypt</div>
+                <div class="feature-desc" data-en="Validate signature authenticity" data-zh="驗證簽章真實性">Validate signature authenticity</div>
             </div>
         </div>
 
         <div class="action-buttons">
-            <a href="sign.html" class="btn btn-sign">📝 Create Signature</a>
-            <a href="decrypt.html" class="btn btn-decrypt">🔓 Decrypt & Verify</a>
+            <a href="sign.html" class="btn btn-sign" data-en="📝 Create Signature" data-zh="📝 建立簽章">📝 Create Signature</a>
+            <a href="decrypt.html" class="btn btn-decrypt" data-en="🔓 Decrypt & Verify" data-zh="🔓 解密與驗證">🔓 Decrypt & Verify</a>
         </div>
 
         <div style="text-align: center; margin-top: 20px;">
-            <a href="admin.html" style="color: #666; text-decoration: none; font-size: 0.9em;">🔐 Admin Panel</a>
+            <a href="admin.html" style="color: #666; text-decoration: none; font-size: 0.9em;" data-en="🔐 Admin Panel" data-zh="🔐 管理面板">🔐 Admin Panel</a>
         </div>
 
         <div class="info-section">
-            <h2>How It Works</h2>
-            <p><strong>1. Create a Signature:</strong> Visit the signing page, draw your signature, and the system automatically captures the date, time, and device information.</p>
-            <p><strong>2. Generate Sign-ID:</strong> A unique Sign-ID is generated for each signature. This Sign-ID acts as your decryption key - keep it safe!</p>
-            <p><strong>3. Encryption:</strong> All data is encrypted using a secure master key combined with your Sign-ID before being exported as a .esig file. The Sign-ID is NOT stored in the file.</p>
-            <p><strong>4. Decrypt & Verify:</strong> Upload the .esig file and enter your Sign-ID to decrypt and verify the signature's authenticity. Without the correct Sign-ID, the file cannot be decrypted.</p>
+            <h2 data-en="How It Works" data-zh="運作方式">How It Works</h2>
+            <p><strong data-en="1. Create a Signature:" data-zh="1. 建立簽章:">1. Create a Signature:</strong> <span data-en="Visit the signing page, draw your signature, and the system automatically captures the date, time, and device information." data-zh="前往簽署頁面，繪製您的簽名，系統將自動擷取日期、時間和裝置資訊。">Visit the signing page, draw your signature, and the system automatically captures the date, time, and device information.</span></p>
+            <p><strong data-en="2. Generate Sign-ID:" data-zh="2. 產生簽章編號:">2. Generate Sign-ID:</strong> <span data-en="A unique Sign-ID is generated for each signature. This Sign-ID acts as your decryption key - keep it safe!" data-zh="每個簽章都會產生唯一的簽章編號。此簽章編號是您的解密金鑰 - 請妥善保管！">A unique Sign-ID is generated for each signature. This Sign-ID acts as your decryption key - keep it safe!</span></p>
+            <p><strong data-en="3. Encryption:" data-zh="3. 加密:">3. Encryption:</strong> <span data-en="All data is encrypted using a secure master key combined with your Sign-ID before being exported as a .esig file. The Sign-ID is NOT stored in the file." data-zh="所有資料在匯出為 .esig 檔案前，都會使用安全主密鑰結合您的簽章編號進行加密。簽章編號不會儲存在檔案中。">All data is encrypted using a secure master key combined with your Sign-ID before being exported as a .esig file. The Sign-ID is NOT stored in the file.</span></p>
+            <p><strong data-en="4. Decrypt & Verify:" data-zh="4. 解密與驗證:">4. Decrypt & Verify:</strong> <span data-en="Upload the .esig file and enter your Sign-ID to decrypt and verify the signature's authenticity. Without the correct Sign-ID, the file cannot be decrypted." data-zh="上傳 .esig 檔案並輸入您的簽章編號以解密並驗證簽章的真實性。沒有正確的簽章編號，檔案將無法解密。">Upload the .esig file and enter your Sign-ID to decrypt and verify the signature's authenticity. Without the correct Sign-ID, the file cannot be decrypted.</span></p>
             
             <div class="security-note">
-                🔐 <strong>Privacy First:</strong> All processing happens entirely in your browser. No data is sent to any server. Your signatures and data remain completely private. Only you know your Sign-ID.
+                <span data-en="🔐 Privacy First: All processing happens entirely in your browser. No data is sent to any server. Your signatures and data remain completely private. Only you know your Sign-ID." data-zh="🔐 隱私優先：所有處理都在您的瀏覽器中完成。不會傳送任何資料到伺服器。您的簽章和資料完全保持私密。只有您知道您的簽章編號。">🔐 <strong>Privacy First:</strong> All processing happens entirely in your browser. No data is sent to any server. Your signatures and data remain completely private. Only you know your Sign-ID.</span>
             </div>
         </div>
     </div>
     
     <script>
+        // Language switching functionality
+        let currentLang = localStorage.getItem('esig-lang') || 'en';
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
+            localStorage.setItem('esig-lang', currentLang);
+            applyLanguage();
+        }
+        
+        function applyLanguage() {
+            const elements = document.querySelectorAll('[data-en][data-zh]');
+            elements.forEach(el => {
+                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel')) {
+                    // For input placeholders
+                    if (el.hasAttribute('data-placeholder-en') && el.hasAttribute('data-placeholder-zh')) {
+                        el.placeholder = currentLang === 'en' ? el.getAttribute('data-placeholder-en') : el.getAttribute('data-placeholder-zh');
+                    }
+                } else {
+                    // For regular text content
+                    el.textContent = currentLang === 'en' ? el.getAttribute('data-en') : el.getAttribute('data-zh');
+                }
+            });
+            
+            // Update language toggle button
+            document.getElementById('langToggle').textContent = currentLang === 'en' ? '中文' : 'English';
+        }
+        
+        // Apply language on page load
+        applyLanguage();
+        
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
