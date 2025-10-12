@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Signature - Sign Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .info-section {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .info-value {
+            color: #333;
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .signature-section {
+            margin-bottom: 20px;
+        }
+
+        .signature-section h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        #signatureCanvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: crosshair;
+            display: block;
+            width: 100%;
+            background: white;
+            touch-action: none;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .info-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            .info-value {
+                width: 100%;
+                word-break: break-all;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 E-Signature</h1>
+        <p class="subtitle">Create your secure digital signature</p>
+
+        <div id="alert" class="alert"></div>
+
+        <div class="info-section">
+            <div class="info-item">
+                <span class="info-label">Sign ID:</span>
+                <span class="info-value" id="signId">Generating...</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Date & Time:</span>
+                <span class="info-value" id="datetime">Loading...</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Device ID:</span>
+                <span class="info-value" id="deviceId">Detecting...</span>
+            </div>
+        </div>
+
+        <div class="signature-section">
+            <h2>Draw Your Signature</h2>
+            <canvas id="signatureCanvas" width="720" height="300"></canvas>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-secondary" onclick="clearSignature()">Clear</button>
+            <button class="btn-primary" onclick="saveSignature()">Save & Export</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const MASTER_KEY = 'e-signature-master-key-2024-secure-v1'; // Master encryption key
+
+        // Canvas setup
+        const canvas = document.getElementById('signatureCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let hasSignature = false;
+
+        // Set canvas background to white
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Generate Sign ID
+        function generateSignId() {
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substring(2, 15);
+            return `SIG-${timestamp}-${random}`.toUpperCase();
+        }
+
+        // Generate Device ID (browser fingerprint)
+        function generateDeviceId() {
+            const nav = navigator;
+            const screen = window.screen;
+            const fingerprint = [
+                nav.userAgent,
+                nav.language,
+                screen.colorDepth,
+                screen.width + 'x' + screen.height,
+                new Date().getTimezoneOffset(),
+                !!window.sessionStorage,
+                !!window.localStorage
+            ].join('|');
+
+            // Simple hash function
+            let hash = 0;
+            for (let i = 0; i < fingerprint.length; i++) {
+                const char = fingerprint.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return 'DEV-' + Math.abs(hash).toString(16).toUpperCase();
+        }
+
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            const formatted = now.toLocaleString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            document.getElementById('datetime').textContent = formatted;
+        }
+
+        // Initialize
+        const signId = generateSignId();
+        document.getElementById('signId').textContent = signId;
+        document.getElementById('deviceId').textContent = generateDeviceId();
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // Drawing functions
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            hasSignature = true;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch events
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        // Clear signature
+        function clearSignature() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            hasSignature = false;
+            showAlert('Signature cleared', 'success');
+        }
+
+        // Simple encryption function using XOR with key
+        function encryptData(data, key) {
+            const jsonStr = JSON.stringify(data);
+            let encrypted = '';
+            for (let i = 0; i < jsonStr.length; i++) {
+                encrypted += String.fromCharCode(
+                    jsonStr.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+                );
+            }
+            return btoa(encrypted); // Base64 encode
+        }
+
+        // Save and export signature
+        async function saveSignature() {
+            if (!hasSignature) {
+                showAlert('Please draw your signature first', 'error');
+                return;
+            }
+
+            try {
+                // Get signature as base64
+                const signatureImage = canvas.toDataURL('image/png');
+
+                // Prepare data
+                const signatureData = {
+                    signId: signId,
+                    datetime: document.getElementById('datetime').textContent,
+                    deviceId: document.getElementById('deviceId').textContent,
+                    signature: signatureImage,
+                    timestamp: Date.now()
+                };
+
+                // Encrypt data
+                const encryptedData = encryptData(signatureData, MASTER_KEY);
+
+                // Create file content
+                const fileContent = {
+                    version: '1.0',
+                    signId: signId,
+                    data: encryptedData
+                };
+
+                // Download file
+                const blob = new Blob([JSON.stringify(fileContent, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `signature-${signId}.esig`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showAlert('Signature saved successfully! Sign ID: ' + signId, 'success');
+            } catch (error) {
+                showAlert('Error saving signature: ' + error.message, 'error');
+            }
+        }
+
+        // Show alert
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = 'alert ' + type + ' show';
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

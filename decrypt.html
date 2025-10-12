@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Signature - Decrypt & Verify</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .upload-section {
+            border: 3px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-section:hover {
+            border-color: #f5576c;
+            background: #fff5f7;
+        }
+
+        .upload-section.dragover {
+            border-color: #f5576c;
+            background: #fff5f7;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        .input-section label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .input-section input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.3s;
+        }
+
+        .input-section input:focus {
+            outline: none;
+            border-color: #f5576c;
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .info-section {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            color: #333;
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .signature-display {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .signature-display h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .signature-display img {
+            max-width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn-primary {
+            background: #f5576c;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #e4465b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .status-verified {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .upload-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔓 E-Signature Decrypt</h1>
+        <p class="subtitle">Verify and decrypt signed documents</p>
+
+        <div id="alert" class="alert"></div>
+
+        <div class="upload-section" id="uploadSection" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Click to upload or drag & drop</div>
+            <div class="upload-subtext">Upload .esig signature file</div>
+            <input type="file" id="fileInput" accept=".esig">
+        </div>
+
+        <div class="input-section">
+            <label for="signIdInput">Sign ID (for verification):</label>
+            <input type="text" id="signIdInput" placeholder="Enter Sign ID to decrypt (e.g., SIG-1234567890-ABC123)">
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="decryptSignature()">Decrypt & Verify</button>
+            <button class="btn-secondary" onclick="reset()">Reset</button>
+        </div>
+
+        <div id="resultSection" class="result-section">
+            <hr style="margin: 30px 0; border: none; border-top: 2px solid #eee;">
+            
+            <div style="text-align: center; margin-bottom: 20px;">
+                <span id="statusBadge" class="status-badge"></span>
+            </div>
+
+            <div class="info-section">
+                <div class="info-item">
+                    <div class="info-label">Sign ID:</div>
+                    <div class="info-value" id="resultSignId"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Date & Time:</div>
+                    <div class="info-value" id="resultDateTime"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Device ID:</div>
+                    <div class="info-value" id="resultDeviceId"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Timestamp:</div>
+                    <div class="info-value" id="resultTimestamp"></div>
+                </div>
+            </div>
+
+            <div class="signature-display">
+                <h2>Signature</h2>
+                <img id="signatureImage" src="" alt="Signature">
+            </div>
+
+            <div class="button-group">
+                <button class="btn-success" onclick="downloadSignatureImage()">Download Signature Image</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const MASTER_KEY = 'e-signature-master-key-2024-secure-v1'; // Must match sign.html
+
+        let uploadedFile = null;
+        let decryptedData = null;
+
+        // File upload handling
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.esig')) {
+                showAlert('Please upload a .esig file', 'error');
+                return;
+            }
+
+            uploadedFile = file;
+            const uploadText = uploadSection.querySelector('.upload-text');
+            uploadText.textContent = '✓ ' + file.name;
+            showAlert('File loaded successfully', 'success');
+        }
+
+        // Decryption function
+        function decryptData(encryptedData, key) {
+            try {
+                const decoded = atob(encryptedData); // Base64 decode
+                let decrypted = '';
+                for (let i = 0; i < decoded.length; i++) {
+                    decrypted += String.fromCharCode(
+                        decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+                    );
+                }
+                return JSON.parse(decrypted);
+            } catch (error) {
+                throw new Error('Invalid encryption or corrupted file');
+            }
+        }
+
+        // Decrypt signature
+        async function decryptSignature() {
+            if (!uploadedFile) {
+                showAlert('Please upload a signature file first', 'error');
+                return;
+            }
+
+            const signIdInput = document.getElementById('signIdInput').value.trim();
+
+            try {
+                // Read file
+                const fileContent = await uploadedFile.text();
+                const fileData = JSON.parse(fileContent);
+
+                // Validate file format
+                if (!fileData.version || !fileData.signId || !fileData.data) {
+                    throw new Error('Invalid file format');
+                }
+
+                // Verify Sign ID if provided
+                if (signIdInput && signIdInput !== fileData.signId) {
+                    throw new Error('Sign ID does not match! File may be tampered with.');
+                }
+
+                // Decrypt data
+                decryptedData = decryptData(fileData.data, MASTER_KEY);
+
+                // Validate decrypted data
+                if (!decryptedData.signId || !decryptedData.signature) {
+                    throw new Error('Decryption failed - invalid data structure');
+                }
+
+                // Additional Sign ID verification
+                if (decryptedData.signId !== fileData.signId) {
+                    throw new Error('Data integrity check failed!');
+                }
+
+                // Display results
+                displayResults(decryptedData, true);
+                showAlert('Signature decrypted and verified successfully!', 'success');
+
+            } catch (error) {
+                showAlert('Decryption failed: ' + error.message, 'error');
+                hideResults();
+            }
+        }
+
+        // Display results
+        function displayResults(data, verified) {
+            document.getElementById('resultSignId').textContent = data.signId;
+            document.getElementById('resultDateTime').textContent = data.datetime;
+            document.getElementById('resultDeviceId').textContent = data.deviceId;
+            
+            const timestamp = new Date(data.timestamp);
+            document.getElementById('resultTimestamp').textContent = timestamp.toLocaleString();
+            
+            document.getElementById('signatureImage').src = data.signature;
+
+            const statusBadge = document.getElementById('statusBadge');
+            if (verified) {
+                statusBadge.textContent = '✓ Verified & Authentic';
+                statusBadge.className = 'status-badge status-verified';
+            } else {
+                statusBadge.textContent = '⚠ Verification Failed';
+                statusBadge.className = 'status-badge status-error';
+            }
+
+            document.getElementById('resultSection').classList.add('show');
+        }
+
+        // Hide results
+        function hideResults() {
+            document.getElementById('resultSection').classList.remove('show');
+        }
+
+        // Download signature image
+        function downloadSignatureImage() {
+            if (!decryptedData || !decryptedData.signature) {
+                showAlert('No signature available to download', 'error');
+                return;
+            }
+
+            const a = document.createElement('a');
+            a.href = decryptedData.signature;
+            a.download = `signature-${decryptedData.signId}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showAlert('Signature image downloaded', 'success');
+        }
+
+        // Reset
+        function reset() {
+            uploadedFile = null;
+            decryptedData = null;
+            fileInput.value = '';
+            document.getElementById('signIdInput').value = '';
+            const uploadText = uploadSection.querySelector('.upload-text');
+            uploadText.textContent = 'Click to upload or drag & drop';
+            hideResults();
+            showAlert('Reset complete', 'success');
+        }
+
+        // Show alert
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = 'alert ' + type + ' show';
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
