@@ -172,6 +172,7 @@
             cursor: crosshair;
             display: block;
             width: 100%;
+            height: 300px;
             background: white;
             touch-action: none;
         }
@@ -269,90 +270,122 @@
                 word-break: break-all;
             }
         }
+
+        .lang-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #667eea;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+
+        .lang-toggle:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .lang-toggle {
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+        }
     </style>
 </head>
 <body>
+    <button class="lang-toggle" onclick="toggleLanguage()" id="langToggle">中文</button>
     <div class="container">
-        <h1>📝 E-Signature</h1>
-        <p class="subtitle">Create your secure digital signature</p>
+        <h1 data-en="📝 E-Signature" data-zh="📝 電子簽章">📝 E-Signature</h1>
+        <p class="subtitle" data-en="Create your secure digital signature" data-zh="建立您的安全數位簽章">Create your secure digital signature</p>
 
         <div id="alert" class="alert"></div>
 
         <div class="input-section" id="activationSection">
-            <label for="activationCodeInput">Activation Code (required):</label>
-            <input type="text" id="activationCodeInput" placeholder="Enter activation code from admin">
-            <button class="btn-primary" onclick="validateActivationCode()" style="margin-top: 10px; width: 100%;">Validate Code</button>
+            <label for="activationCodeInput" data-en="Activation Code (required):" data-zh="啟用碼（必填）：">Activation Code (required):</label>
+            <input type="text" id="activationCodeInput" data-placeholder-en="Enter activation code from admin" data-placeholder-zh="輸入管理員提供的啟用碼" placeholder="Enter activation code from admin">
+            <button class="btn-primary" onclick="validateActivationCode()" style="margin-top: 10px; width: 100%;" data-en="Validate Code" data-zh="驗證啟用碼">Validate Code</button>
         </div>
 
         <div id="mainContent" style="display: none;">
         
         <!-- Signer Identity Section (Required for Taiwan Law) -->
         <div class="input-section">
-            <h2 style="color: #333; margin-bottom: 15px; font-size: 1.3em;">📋 Signer Information (Required)</h2>
+            <h2 style="color: #333; margin-bottom: 15px; font-size: 1.3em;" data-en="📋 Signer Information (Required)" data-zh="📋 簽署人資訊（必填）">📋 Signer Information (Required)</h2>
             <div style="margin-bottom: 15px;">
-                <label for="signerName">Full Name (姓名) *:</label>
-                <input type="text" id="signerName" placeholder="Enter your full name" required>
+                <label for="signerName" data-en="Full Name (姓名) *:" data-zh="姓名 *:">Full Name (姓名) *:</label>
+                <input type="text" id="signerName" data-placeholder-en="Enter your full name" data-placeholder-zh="輸入您的全名" placeholder="Enter your full name" required>
             </div>
             <div style="margin-bottom: 15px;">
-                <label for="signerIdNumber">National ID / Passport Number (身分證字號/護照號碼) *:</label>
-                <input type="text" id="signerIdNumber" placeholder="e.g., A123456789" required>
+                <label for="signerIdNumber" data-en="National ID / Passport Number (身分證字號/護照號碼) *:" data-zh="身分證字號/護照號碼 *:">National ID / Passport Number (身分證字號/護照號碼) *:</label>
+                <input type="text" id="signerIdNumber" data-placeholder-en="e.g., A123456789" data-placeholder-zh="例如：A123456789" placeholder="e.g., A123456789" required>
             </div>
             <div style="margin-bottom: 15px;">
-                <label for="signerEmail">Email (電子郵件):</label>
-                <input type="email" id="signerEmail" placeholder="your.email@example.com">
+                <label for="signerEmail" data-en="Email (電子郵件):" data-zh="電子郵件:">Email (電子郵件):</label>
+                <input type="email" id="signerEmail" data-placeholder-en="your.email@example.com" data-placeholder-zh="您的電子郵件@example.com" placeholder="your.email@example.com">
             </div>
             <div style="margin-bottom: 15px;">
-                <label for="signerPhone">Phone Number (電話號碼):</label>
-                <input type="tel" id="signerPhone" placeholder="+886-912-345-678">
+                <label for="signerPhone" data-en="Phone Number (電話號碼):" data-zh="電話號碼:">Phone Number (電話號碼):</label>
+                <input type="tel" id="signerPhone" data-placeholder-en="+886-912-345-678" data-placeholder-zh="+886-912-345-678" placeholder="+886-912-345-678">
             </div>
         </div>
 
         <!-- Legal Consent Section -->
         <div class="info-section" style="background: #fff3cd; border-left: 4px solid #ffc107;">
-            <h3 style="color: #856404; margin-bottom: 10px;">⚖️ Legal Notice (法律聲明)</h3>
-            <p style="color: #856404; font-size: 0.9em; line-height: 1.6; margin-bottom: 10px;">
-                This electronic signature is created in compliance with the Electronic Signatures Act of Taiwan (R.O.C.) 
-                (中華民國電子簽章法). By signing, you acknowledge that this electronic signature has the same legal effect 
-                as a handwritten signature.
+            <h3 style="color: #856404; margin-bottom: 10px;" data-en="⚖️ Legal Notice" data-zh="⚖️ 法律聲明">⚖️ Legal Notice</h3>
+            <p id="legalNoticeText" style="color: #856404; font-size: 0.9em; line-height: 1.6; margin-bottom: 10px;" 
+               data-en="This electronic signature is created in compliance with the Electronic Signatures Act of Taiwan (R.O.C.). By signing, you acknowledge that this electronic signature has the same legal effect as a handwritten signature." 
+               data-zh="此電子簽章依據中華民國電子簽章法建立。簽署即表示您承認此電子簽章具有與手寫簽名相同的法律效力。">
+                This electronic signature is created in compliance with the Electronic Signatures Act of Taiwan (R.O.C.). By signing, you acknowledge that this electronic signature has the same legal effect as a handwritten signature.
             </p>
             <div style="display: flex; align-items: center; margin-top: 15px;">
                 <input type="checkbox" id="legalConsent" style="width: auto; margin-right: 10px; cursor: pointer;">
-                <label for="legalConsent" style="color: #856404; cursor: pointer; margin: 0;">
-                    I understand and agree that this electronic signature is legally binding (我理解並同意此電子簽章具有法律效力)
+                <label for="legalConsent" id="legalConsentLabel" style="color: #856404; cursor: pointer; margin: 0;" 
+                       data-en="I understand and agree that this electronic signature is legally binding" 
+                       data-zh="我理解並同意此電子簽章具有法律效力">
+                    I understand and agree that this electronic signature is legally binding
                 </label>
             </div>
         </div>
 
         <div class="info-section">
             <div class="info-item">
-                <span class="info-label">Sign ID:</span>
-                <span class="info-value" id="signId">Generating...</span>
+                <span class="info-label" data-en="Sign ID:" data-zh="簽章編號:">Sign ID:</span>
+                <span class="info-value" id="signId" data-en="Generating..." data-zh="產生中...">Generating...</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Date & Time (ISO 8601):</span>
-                <span class="info-value" id="datetime">Loading...</span>
+                <span class="info-label" data-en="Date & Time (ISO 8601):" data-zh="日期與時間 (ISO 8601):">Date & Time (ISO 8601):</span>
+                <span class="info-value" id="datetime" data-en="Loading..." data-zh="載入中...">Loading...</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Device ID:</span>
-                <span class="info-value" id="deviceId">Detecting...</span>
+                <span class="info-label" data-en="Device ID:" data-zh="裝置編號:">Device ID:</span>
+                <span class="info-value" id="deviceId" data-en="Detecting..." data-zh="偵測中...">Detecting...</span>
             </div>
         </div>
 
         <div class="upload-section" id="documentUploadSection" onclick="document.getElementById('documentFileInput').click()">
             <div class="upload-icon">📄</div>
-            <div class="upload-text">Optional: Upload Any File to Sign</div>
-            <div class="upload-subtext">Click to upload any file that will be encrypted with your signature</div>
+            <div class="upload-text" data-en="Optional: Upload Any File to Sign" data-zh="選填：上傳要簽署的檔案">Optional: Upload Any File to Sign</div>
+            <div class="upload-subtext" data-en="Click to upload any file that will be encrypted with your signature" data-zh="點擊上傳要與簽章一起加密的檔案">Click to upload any file that will be encrypted with your signature</div>
             <input type="file" id="documentFileInput">
         </div>
 
         <div class="signature-section">
-            <h2>Draw Your Signature</h2>
-            <canvas id="signatureCanvas" width="720" height="300"></canvas>
+            <h2 data-en="Draw Your Signature" data-zh="繪製您的簽名">Draw Your Signature</h2>
+            <canvas id="signatureCanvas"></canvas>
         </div>
 
         <div class="button-group">
-            <button class="btn-secondary" onclick="clearSignature()">Clear</button>
-            <button class="btn-primary" onclick="saveSignature()">Save & Export</button>
+            <button class="btn-secondary" onclick="clearSignature()" data-en="Clear" data-zh="清除">Clear</button>
+            <button class="btn-primary" onclick="saveSignature()" data-en="Save & Export" data-zh="儲存並匯出">Save & Export</button>
         </div>
         </div>
     </div>
@@ -372,13 +405,28 @@
         let isDrawing = false;
         let hasSignature = false;
 
-        // Set canvas background to white
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        // Setup high-DPI canvas for better resolution on retina displays
+        function setupCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            
+            // Set actual size in memory (scaled to account for extra pixel density)
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            
+            // Scale the drawing context to match
+            ctx.scale(dpr, dpr);
+            
+            // Set canvas background to white
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, rect.width, rect.height);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        setupCanvas();
 
         // Generate Sign ID
         function generateSignId() {
@@ -461,6 +509,23 @@
             isDrawing = false;
         }
 
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (hasSignature) {
+                // Save the current signature before resizing
+                const tempImage = canvas.toDataURL();
+                setupCanvas();
+                const img = new Image();
+                img.onload = () => {
+                    const rect = canvas.getBoundingClientRect();
+                    ctx.drawImage(img, 0, 0, rect.width, rect.height);
+                };
+                img.src = tempImage;
+            } else {
+                setupCanvas();
+            }
+        });
+
         // Mouse events
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
@@ -485,7 +550,7 @@
             // Add file size check (limit to 50MB to avoid browser issues)
             const maxSize = 50 * 1024 * 1024; // 50MB in bytes
             if (file.size > maxSize) {
-                showAlert('File too large! Please upload a file smaller than 50MB.', 'error');
+                showAlert('fileTooLarge', 'error');
                 return;
             }
 
@@ -496,15 +561,15 @@
                     uploadedDocumentName = file.name;
                     const uploadText = documentUploadSection.querySelector('.upload-text');
                     uploadText.textContent = '✓ ' + file.name;
-                    showAlert('Document uploaded successfully', 'success');
+                    showAlert('uploadSuccess', 'success');
                 } catch (error) {
-                    showAlert('Error loading file: ' + error.message, 'error');
+                    showAlert(messages.uploadError[currentLang] + error.message, 'error');
                     uploadedDocument = null;
                     uploadedDocumentName = null;
                 }
             };
             reader.onerror = function() {
-                showAlert('Error reading file. Please try again.', 'error');
+                showAlert('readError', 'error');
                 uploadedDocument = null;
                 uploadedDocumentName = null;
             };
@@ -527,14 +592,14 @@
             const code = document.getElementById('activationCodeInput').value.trim();
             
             if (!code) {
-                showAlert('Please enter an activation code', 'error');
+                showAlert('enterCode', 'error');
                 return;
             }
 
             // Expected format: AC-TIMESTAMP-RANDOM-SIGNATURE
             const parts = code.split('-');
             if (parts.length !== 4 || parts[0] !== 'AC') {
-                showAlert('Invalid activation code format!', 'error');
+                showAlert('invalidFormat', 'error');
                 return;
             }
 
@@ -548,7 +613,7 @@
             const thirtyDays = 30 * 24 * 60 * 60 * 1000;
             
             if (now - codeTime > thirtyDays) {
-                showAlert('Activation code has expired! Please request a new code.', 'error');
+                showAlert('codeExpired', 'error');
                 return;
             }
 
@@ -564,18 +629,19 @@
                 document.getElementById('activationSection').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
                 
-                showAlert('Activation code validated successfully!', 'success');
+                showAlert('codeValidated', 'success');
             } else {
-                showAlert('Invalid activation code!', 'error');
+                showAlert('invalidCode', 'error');
             }
         }
 
         // Clear signature
         function clearSignature() {
+            const rect = canvas.getBoundingClientRect();
             ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, rect.width, rect.height);
             hasSignature = false;
-            showAlert('Signature cleared', 'success');
+            showAlert('signatureCleared', 'success');
         }
 
         // Simple encryption function using XOR with key
@@ -598,12 +664,12 @@
         // Save and export signature
         async function saveSignature() {
             if (!activationCodeValid) {
-                showAlert('Please validate your activation code first', 'error');
+                showAlert(messages.enterCode[currentLang], 'error');
                 return;
             }
 
             if (!hasSignature) {
-                showAlert('Please draw your signature first', 'error');
+                showAlert('noSignature', 'error');
                 return;
             }
 
@@ -612,18 +678,13 @@
             const signerIdNumber = document.getElementById('signerIdNumber').value.trim();
             const legalConsent = document.getElementById('legalConsent').checked;
 
-            if (!signerName) {
-                showAlert('Please enter your full name (請輸入姓名)', 'error');
-                return;
-            }
-
-            if (!signerIdNumber) {
-                showAlert('Please enter your National ID or Passport Number (請輸入身分證字號或護照號碼)', 'error');
+            if (!signerName || !signerIdNumber) {
+                showAlert('fillRequired', 'error');
                 return;
             }
 
             if (!legalConsent) {
-                showAlert('Please agree to the legal notice to proceed (請同意法律聲明)', 'error');
+                showAlert('agreeTerms', 'error');
                 return;
             }
 
@@ -687,21 +748,76 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                showAlert('Signature saved successfully! Keep your Sign ID safe: ' + signId, 'success');
+                showAlert('signatureSaved', 'success', signId);
             } catch (error) {
-                showAlert('Error saving signature: ' + error.message, 'error');
+                showAlert(messages.saveError[currentLang] + error.message, 'error');
             }
         }
+        
+        // Bilingual message translations
+        const messages = {
+            fileTooLarge: { en: 'File too large! Please upload a file smaller than 50MB.', zh: '檔案太大！請上傳小於 50MB 的檔案。' },
+            uploadSuccess: { en: 'Document uploaded successfully', zh: '文件上傳成功' },
+            uploadError: { en: 'Error loading file: ', zh: '載入檔案時發生錯誤：' },
+            readError: { en: 'Error reading file. Please try again.', zh: '讀取檔案時發生錯誤，請重試。' },
+            enterCode: { en: 'Please enter an activation code', zh: '請輸入啟用碼' },
+            invalidFormat: { en: 'Invalid activation code format!', zh: '啟用碼格式錯誤！' },
+            codeExpired: { en: 'Activation code has expired! Please request a new code.', zh: '啟用碼已過期！請申請新的啟用碼。' },
+            codeValidated: { en: 'Activation code validated successfully!', zh: '啟用碼驗證成功！' },
+            invalidCode: { en: 'Invalid activation code!', zh: '啟用碼無效！' },
+            signatureCleared: { en: 'Signature cleared', zh: '簽名已清除' },
+            noSignature: { en: 'Please draw your signature first', zh: '請先繪製您的簽名' },
+            fillRequired: { en: 'Please fill in all required fields (Full Name and National ID/Passport)', zh: '請填寫所有必填欄位（姓名和身分證字號/護照號碼）' },
+            agreeTerms: { en: 'Please agree to the legal notice', zh: '請同意法律聲明' },
+            signatureSaved: { en: 'Signature saved successfully! Keep your Sign ID safe: ', zh: '簽章已成功儲存！請妥善保管您的簽章編號：' },
+            saveError: { en: 'Error saving signature: ', zh: '儲存簽章時發生錯誤：' }
+        };
 
-        // Show alert
-        function showAlert(message, type) {
+        // Show alert with bilingual support
+        function showAlert(messageKey, type, suffix = '') {
             const alert = document.getElementById('alert');
+            let message;
+            if (typeof messageKey === 'string' && messages[messageKey]) {
+                message = messages[messageKey][currentLang] + suffix;
+            } else {
+                message = messageKey; // Fallback for plain strings
+            }
             alert.textContent = message;
             alert.className = 'alert ' + type + ' show';
             setTimeout(() => {
                 alert.classList.remove('show');
             }, 5000);
         }
+        
+        // Language switching functionality
+        let currentLang = localStorage.getItem('esig-lang') || 'en';
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
+            localStorage.setItem('esig-lang', currentLang);
+            applyLanguage();
+        }
+        
+        function applyLanguage() {
+            const elements = document.querySelectorAll('[data-en][data-zh]');
+            elements.forEach(el => {
+                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel')) {
+                    // For input placeholders
+                    if (el.hasAttribute('data-placeholder-en') && el.hasAttribute('data-placeholder-zh')) {
+                        el.placeholder = currentLang === 'en' ? el.getAttribute('data-placeholder-en') : el.getAttribute('data-placeholder-zh');
+                    }
+                } else {
+                    // For regular text content
+                    el.textContent = currentLang === 'en' ? el.getAttribute('data-en') : el.getAttribute('data-zh');
+                }
+            });
+            
+            // Update language toggle button
+            document.getElementById('langToggle').textContent = currentLang === 'en' ? '中文' : 'English';
+        }
+        
+        // Apply language on page load
+        applyLanguage();
         
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
