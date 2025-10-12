@@ -277,7 +277,7 @@
                 <h3>Generated Activation Code</h3>
                 <div class="activation-code" id="generatedCode"></div>
                 <div class="code-info">Share this code with users to allow them to create signatures</div>
-                <div class="code-expiry">Valid for: <span id="codeExpiry">Single use</span></div>
+                <div class="code-expiry">Valid for: <span id="codeExpiry">Unlimited use across all devices</span></div>
             </div>
 
             <div class="button-group">
@@ -297,9 +297,22 @@
         // Configuration
         const ADMIN_PASSCODE = '17808';
         const STORAGE_KEY = 'esig-activation-codes';
+        const ACTIVATION_SECRET = 'e-signature-activation-secret-2024-v1'; // Secret for activation code encryption
 
         let isLoggedIn = false;
         let currentCode = null;
+
+        // Encryption function for activation codes
+        function encryptActivationCode(data, key) {
+            const jsonStr = JSON.stringify(data);
+            let encrypted = '';
+            for (let i = 0; i < jsonStr.length; i++) {
+                encrypted += String.fromCharCode(
+                    jsonStr.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+                );
+            }
+            return btoa(encrypted); // Base64 encode
+        }
 
         // Initialize
         function init() {
@@ -362,10 +375,20 @@
                 return;
             }
 
-            // Generate a unique activation code
+            // Generate a cryptographic activation code that works cross-device
             const timestamp = Date.now();
-            const random = Math.random().toString(36).substring(2, 9).toUpperCase();
-            const code = `AC-${timestamp}-${random}`;
+            const random = Math.random().toString(36).substring(2, 15);
+            const codeData = {
+                timestamp: timestamp,
+                random: random,
+                valid: true
+            };
+            
+            // Encrypt the code data
+            const encryptedCode = encryptActivationCode(codeData, ACTIVATION_SECRET);
+            
+            // Create a readable code format (replace problematic characters)
+            const code = 'ESIG-' + encryptedCode.replace(/\+/g, 'P').replace(/\//g, 'S').replace(/=/g, '');
             
             currentCode = code;
 
@@ -373,11 +396,11 @@
             document.getElementById('generatedCode').textContent = code;
             document.getElementById('codeDisplay').classList.remove('hidden');
 
-            // Save to history
+            // Save to history (for local display only)
             saveCodeToHistory(code);
             loadCodeHistory();
 
-            showAlert('Activation code generated successfully!', 'success');
+            showAlert('Activation code generated successfully! This code works on any device.', 'success');
         }
 
         // Copy code to clipboard
@@ -442,8 +465,10 @@
             }
         };
 
-        // Check if code is valid
+        // Check if code is valid - Note: This is now deprecated for cross-device codes
+        // Validation happens in sign.html using cryptographic verification
         window.isValidActivationCode = function(code) {
+            // For backward compatibility, check localStorage first
             const codes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
             const foundCode = codes.find(c => c.code === code);
             return foundCode && !foundCode.used;
