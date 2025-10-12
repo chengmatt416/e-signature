@@ -12,6 +12,7 @@ A secure, client-side digital signature application that runs entirely in your b
 - **✅ Verification**: Decrypt and verify signature authenticity
 - **🔐 Privacy**: 100% client-side - no data sent to servers
 - **🔑 Sign-ID Privacy**: Sign-ID is encrypted and only known to the signer
+- **📱 Progressive Web App**: Install on Android, iOS, or desktop for offline use
 
 ## 📖 How to Use
 
@@ -39,6 +40,40 @@ A secure, client-side digital signature application that runs entirely in your b
 ## 🌐 GitHub Pages
 
 Visit the live application: [https://chengmatt416.github.io/e-signature/](https://chengmatt416.github.io/e-signature/)
+
+## 📱 Install as Web App (PWA)
+
+E-Signature can be installed as a Progressive Web App on your mobile device or desktop for a native app-like experience!
+
+### On Android (Chrome/Edge)
+
+1. Visit [https://chengmatt416.github.io/e-signature/](https://chengmatt416.github.io/e-signature/)
+2. Tap the menu (⋮) in the browser
+3. Select "Install app" or "Add to Home screen"
+4. Follow the prompts to install
+5. The app will appear on your home screen and can be launched like a native app
+
+### On iOS (Safari)
+
+1. Visit [https://chengmatt416.github.io/e-signature/](https://chengmatt416.github.io/e-signature/)
+2. Tap the Share button (⎋)
+3. Scroll down and tap "Add to Home Screen"
+4. Tap "Add" to confirm
+5. The app will appear on your home screen
+
+### On Desktop (Chrome/Edge/Brave)
+
+1. Visit [https://chengmatt416.github.io/e-signature/](https://chengmatt416.github.io/e-signature/)
+2. Look for the install icon (⊕) in the address bar
+3. Click "Install" in the prompt
+4. The app will open in its own window and be added to your applications
+
+**Benefits of installing as PWA:**
+- Works offline after first visit
+- Faster loading times
+- Native app-like experience
+- No app store required
+- Automatic updates
 
 ## 🔧 Technical Details
 
