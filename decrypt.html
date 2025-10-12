@@ -294,8 +294,8 @@
         </div>
 
         <div class="input-section">
-            <label for="signIdInput">Sign ID (for verification):</label>
-            <input type="text" id="signIdInput" placeholder="Enter Sign ID to decrypt (e.g., SIG-1234567890-ABC123)">
+            <label for="signIdInput">Sign ID (required for decryption):</label>
+            <input type="text" id="signIdInput" placeholder="Enter your Sign ID (e.g., SIG-1234567890-ABC123)" required>
         </div>
 
         <div class="button-group">
@@ -415,6 +415,12 @@
             }
 
             const signIdInput = document.getElementById('signIdInput').value.trim();
+            
+            // Sign ID is now required for decryption
+            if (!signIdInput) {
+                showAlert('Please enter the Sign ID to decrypt the signature', 'error');
+                return;
+            }
 
             try {
                 // Read file
@@ -422,26 +428,22 @@
                 const fileData = JSON.parse(fileContent);
 
                 // Validate file format
-                if (!fileData.version || !fileData.signId || !fileData.data) {
+                if (!fileData.version || !fileData.data) {
                     throw new Error('Invalid file format');
                 }
 
-                // Verify Sign ID if provided
-                if (signIdInput && signIdInput !== fileData.signId) {
-                    throw new Error('Sign ID does not match! File may be tampered with.');
-                }
-
-                // Decrypt data
-                decryptedData = decryptData(fileData.data, MASTER_KEY);
+                // Decrypt data using Sign ID as part of the key
+                const decryptionKey = MASTER_KEY + signIdInput;
+                decryptedData = decryptData(fileData.data, decryptionKey);
 
                 // Validate decrypted data
                 if (!decryptedData.signId || !decryptedData.signature) {
-                    throw new Error('Decryption failed - invalid data structure');
+                    throw new Error('Decryption failed - incorrect Sign ID or corrupted file');
                 }
 
-                // Additional Sign ID verification
-                if (decryptedData.signId !== fileData.signId) {
-                    throw new Error('Data integrity check failed!');
+                // Verify that the provided Sign ID matches the one in decrypted data
+                if (decryptedData.signId !== signIdInput) {
+                    throw new Error('Incorrect Sign ID! Please verify your Sign ID.');
                 }
 
                 // Display results
