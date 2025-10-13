@@ -5,14 +5,15 @@ A secure, client-side digital signature application that runs entirely in your b
 ## 🚀 Features
 
 - **✍️ Signature Canvas**: Draw your signature using mouse or touch
-- **🔒 One-Way Encryption**: All data encrypted with AES-256-GCM using Sign-ID-based key derivation
-- **🛡️ Maximum Security**: Encryption uses hidden entropy - even knowing the decryption key (Sign-ID) doesn't allow re-encryption
+- **🔒 Random-Key Encryption**: Each signature uses a completely random encryption key that changes every time
+- **🛡️ Maximum Security**: Random key is encrypted with Sign-ID - impossible to predict or replicate
 - **📅 Auto-Fill**: Automatically captures date, time, and device ID
-- **🆔 Unique Sign-ID**: Each signature gets a unique identifier that serves as the only decryption key
+- **🆔 Unique Sign-ID**: Each signature gets a unique identifier used to decrypt the random key
 - **💾 Export**: Download encrypted `.esig` files
 - **✅ Verification**: Decrypt and verify signature authenticity with Sign-ID only
 - **🔐 Privacy**: 100% client-side - no data sent to servers
 - **🔑 Simple Decryption**: Only Sign-ID needed - no passphrases to remember
+- **🔐 Admin Direct Sign**: Built-in keypad for admin passcode entry (no device keyboard)
 - **📱 Progressive Web App**: Install on Android, iOS, or desktop for offline use
 - **⚖️ Taiwan Legal Compliance**: Compliant with Taiwan's Electronic Signatures Act (電子簽章法)
 - **🔒 Integrity Verification**: SHA-256 hash ensures signature and document integrity
@@ -99,26 +100,26 @@ E-Signature can be installed as a Progressive Web App on your mobile device or d
 - `decrypt.html` - Signature decryption and verification page
 
 ### Security
-- **One-Way Encryption Architecture**: Encryption uses additional hidden entropy not available during decryption
+- **Random-Key Encryption**: Each signature uses a completely random 256-bit encryption key
+- **No Relationship with Sign-ID**: Encryption key is randomly generated, changes every time
 - All encryption/decryption happens client-side using JavaScript Web Crypto API
 - **AES-256-GCM encryption** with PBKDF2 key derivation (100,000 iterations)
-- Encryption key derived from: Sign-ID + Device ID + Timestamp + "encryption" seed
-- Decryption key derived from: Sign-ID only
-- **Impossible to re-encrypt**: Even with the decryption key (Sign-ID), you cannot recreate the encryption key
+- **Key Wrapping**: Random encryption key is encrypted with Sign-ID-derived key
+- **Decryption with Sign-ID**: Sign-ID decrypts the wrapped key, which then decrypts the data
 - No data transmission to external servers
 - **SHA-256 hashing** ensures signature and document integrity
 - **Timestamp in ISO 8601 format** for precise time recording
 - Random IV (initialization vector) for each encryption ensures uniqueness
 
 ### Encryption Details
-**Version 4.0 (One-Way Encryption)**:
+**Version 5.0 (Random-Key Encryption)**:
 - **Algorithm**: AES-256-GCM (authenticated encryption)
-- **Key Derivation**: PBKDF2 with SHA-256, 100,000 iterations
-- **Encryption Key**: Derived from Sign-ID + Device ID + Timestamp (available only at encryption time)
-- **Decryption Key**: Derived from Sign-ID only (cannot be used for encryption)
-- **Key Size**: 256 bits
-- **Security Model**: One-way encryption - decryption is possible with Sign-ID, but re-encryption is impossible
-- **Backward Compatibility**: Legacy v1.0, v2.0, and v3.0 formats are no longer supported
+- **Data Encryption Key**: Completely random, generated fresh for each signature
+- **Key Wrapping**: PBKDF2 with SHA-256, 100,000 iterations
+- **Key Encryption Key**: Derived from Sign-ID only
+- **Key Size**: 256 bits for both data and key-encryption keys
+- **Security Model**: Random encryption key has no relationship with Sign-ID, changes every time
+- **Backward Compatibility**: Legacy v1.0, v2.0, v3.0, and v4.0 formats are no longer supported
 
 ### Taiwan Legal Compliance (電子簽章法)
 This application complies with Taiwan's Electronic Signatures Act requirements:
@@ -135,25 +136,22 @@ legal validity may vary depending on the specific use case and acceptance by rel
 documents, consult with a legal professional.
 
 ### File Format (.esig)
-Version 4.0 (One-Way Encryption):
+Version 5.0 (Random-Key Encryption):
 ```json
 {
-  "version": "4.0",
+  "version": "5.0",
   "jurisdiction": "TW",
-  "data": "base64_encrypted_data_with_IV"
+  "data": "base64_encrypted_data_with_wrapped_key"
 }
 ```
 
-Encrypted data includes:
-- Signer information (name, ID number, email, phone)
-- Signature image and its SHA-256 hash
-- Document (if attached) and its SHA-256 hash
-- ISO 8601 timestamp
-- Device ID and Sign-ID
-- Legal consent flag
-- Compliance metadata
+Encrypted data structure:
+- Key IV (12 bytes) - for wrapping the random key
+- Wrapped Key (48 bytes) - random encryption key, encrypted with Sign-ID-derived key
+- Data IV (12 bytes) - for encrypting the actual data
+- Encrypted Data (variable) - signature data encrypted with the random key
 
-**Note**: The encrypted data is protected by one-way AES-256-GCM encryption. Decryption requires only the Sign-ID, but re-encryption is impossible even with the decryption key due to the use of time-bound entropy in the encryption key.
+**Note**: The random encryption key is different for every signature and has no relationship with the Sign-ID. The Sign-ID is only used to decrypt the wrapped key.
 
 ## 🛠️ Local Development
 

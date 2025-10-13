@@ -595,23 +595,90 @@
                 encoder.encode(decryptionSeed),
                 'PBKDF2',
                 false,
+        // Derive key-encryption-key from Sign-ID (same as in sign.html)
+        async function deriveKeyEncryptionKey(signId) {
+            const encoder = new TextEncoder();
+            
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(signId),
+                'PBKDF2',
+                false,
                 ['deriveBits', 'deriveKey']
             );
             
             const key = await crypto.subtle.deriveKey(
                 {
                     name: 'PBKDF2',
-                    salt: encoder.encode(signId),
+                    salt: encoder.encode(signId + ':kek'),
                     iterations: 100000,
                     hash: 'SHA-256'
                 },
                 keyMaterial,
                 { name: 'AES-GCM', length: 256 },
                 true,
-                ['decrypt']
+                ['encrypt', 'decrypt']
             );
             
             return key;
+        }
+
+        // Decrypt data using random key (for v5.0)
+        async function decryptDataV5(encryptedData, signId) {
+            try {
+                // Decode base64
+                const decoded = atob(encryptedData);
+                const bytes = new Uint8Array(decoded.length);
+                for (let i = 0; i < decoded.length; i++) {
+                    bytes[i] = decoded.charCodeAt(i);
+                }
+                
+                // Extract: keyIv(12) + encryptedKey(variable) + dataIv(12) + encryptedData
+                // The encrypted key is 48 bytes (32 byte key + 16 byte GCM tag)
+                let offset = 0;
+                const keyIv = bytes.slice(offset, offset + 12); offset += 12;
+                const encryptedKey = bytes.slice(offset, offset + 48); offset += 48;
+                const dataIv = bytes.slice(offset, offset + 12); offset += 12;
+                const encryptedDataBytes = bytes.slice(offset);
+                
+                // Derive key-encryption-key from Sign-ID
+                const kek = await deriveKeyEncryptionKey(signId);
+                
+                // Decrypt the random data key
+                const decryptedKeyBuffer = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: keyIv
+                    },
+                    kek,
+                    encryptedKey
+                );
+                
+                // Import the decrypted random key
+                const randomDataKey = await crypto.subtle.importKey(
+                    'raw',
+                    decryptedKeyBuffer,
+                    'AES-GCM',
+                    false,
+                    ['decrypt']
+                );
+                
+                // Decrypt the actual data
+                const decryptedBuffer = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: dataIv
+                    },
+                    randomDataKey,
+                    encryptedDataBytes
+                );
+                
+                const decoder = new TextDecoder();
+                const jsonStr = decoder.decode(decryptedBuffer);
+                return JSON.parse(jsonStr);
+            } catch (error) {
+                throw new Error('Invalid Sign ID or corrupted file');
+            }
         }
 
         // Decrypt data using AES-GCM with Sign-ID only (for v4.0)
@@ -699,16 +766,20 @@
                 // Check version and decrypt accordingly
                 if (fileData.version === '1.0' || fileData.version === '2.0') {
                     // Legacy format - old encryption
-                    showAlert('⚠️ Legacy signature format detected (v' + fileData.version + '). This version uses the old encryption method. Please re-sign with the new version.', 'error');
+                    showAlert('⚠️ Legacy signature format detected (v' + fileData.version + '). Please re-sign with the new version.', 'error');
                     throw new Error('Legacy format not supported. For security reasons, please re-sign with the new version.');
                 } else if (fileData.version === '3.0') {
-                    // Previous passphrase-based format
-                    showAlert('⚠️ This signature uses v3.0 format which required a passphrase. Please re-sign with v4.0 for Sign-ID-only decryption.', 'error');
-                    throw new Error('v3.0 format not supported. Please re-sign with v4.0.');
+                    // Passphrase-based format
+                    showAlert('⚠️ This signature uses v3.0 format which required a passphrase. Please re-sign with v5.0.', 'error');
+                    throw new Error('v3.0 format not supported. Please re-sign with v5.0.');
                 } else if (fileData.version === '4.0') {
-                    // New format - Sign-ID only decryption
-                    showAlert('Sign-ID-only decryption format (v4.0) detected.', 'success');
-                    decryptedData = await decryptDataV4(fileData.data, signIdInput);
+                    // Time-bound encryption format
+                    showAlert('⚠️ This signature uses v4.0 format. Please re-sign with v5.0 for random-key encryption.', 'error');
+                    throw new Error('v4.0 format not supported. Please re-sign with v5.0.');
+                } else if (fileData.version === '5.0') {
+                    // New format - Random key with Sign-ID decryption
+                    showAlert('Random-key encryption format (v5.0) detected.', 'success');
+                    decryptedData = await decryptDataV5(fileData.data, signIdInput);
                 } else {
                     throw new Error('Unsupported file version: ' + fileData.version);
                 }
