@@ -5,13 +5,15 @@ A secure, client-side digital signature application that runs entirely in your b
 ## 🚀 Features
 
 - **✍️ Signature Canvas**: Draw your signature using mouse or touch
-- **🔒 Encryption**: All data encrypted with a secure master key combined with Sign-ID
+- **🔒 Random-Key Encryption**: Each signature uses a completely random encryption key that changes every time
+- **🛡️ Maximum Security**: Random key is encrypted with Sign-ID - impossible to predict or replicate
 - **📅 Auto-Fill**: Automatically captures date, time, and device ID
-- **🆔 Unique Sign-ID**: Each signature gets a unique identifier that acts as a decryption key
+- **🆔 Unique Sign-ID**: Each signature gets a unique identifier used to decrypt the random key
 - **💾 Export**: Download encrypted `.esig` files
-- **✅ Verification**: Decrypt and verify signature authenticity
+- **✅ Verification**: Decrypt and verify signature authenticity with Sign-ID only
 - **🔐 Privacy**: 100% client-side - no data sent to servers
-- **🔑 Sign-ID Privacy**: Sign-ID is encrypted and only known to the signer
+- **🔑 Simple Decryption**: Only Sign-ID needed - no passphrases to remember
+- **🔐 Admin Direct Sign**: Built-in keypad for admin passcode entry (no device keyboard)
 - **📱 Progressive Web App**: Install on Android, iOS, or desktop for offline use
 - **⚖️ Taiwan Legal Compliance**: Compliant with Taiwan's Electronic Signatures Act (電子簽章法)
 - **🔒 Integrity Verification**: SHA-256 hash ensures signature and document integrity
@@ -35,13 +37,13 @@ A secure, client-side digital signature application that runs entirely in your b
    - Current date and time (ISO 8601 format)
    - Device fingerprint
 8. Click "Save & Export" to download encrypted `.esig` file
-9. **IMPORTANT**: Save your Sign-ID - it's required to decrypt the signature and is not stored in the file
+9. **IMPORTANT**: Save your Sign-ID - it's the only way to decrypt the signature
 
 ### Decrypting a Signature
 
 1. Open `decrypt.html`
 2. Upload the `.esig` file
-3. **Enter the Sign-ID** (required - acts as decryption key)
+3. **Enter the Sign-ID** (the only key needed for decryption)
 4. Click "Decrypt & Verify"
 5. View signature details including:
    - Signer identity information
@@ -50,7 +52,7 @@ A secure, client-side digital signature application that runs entirely in your b
    - Legal compliance information
 6. Download the signature image or attached document
 
-**Note**: Without the correct Sign-ID, the signature cannot be decrypted.
+**Note**: Only the Sign-ID is needed to decrypt. The encryption process uses additional hidden entropy (device ID + timestamp) that makes it impossible to re-encrypt even with the decryption key.
 
 ## 🌐 GitHub Pages
 
@@ -98,13 +100,26 @@ E-Signature can be installed as a Progressive Web App on your mobile device or d
 - `decrypt.html` - Signature decryption and verification page
 
 ### Security
-- All encryption/decryption happens client-side using JavaScript
-- Data is encrypted using XOR cipher with a master key combined with the Sign-ID
-- Sign-ID is **not stored in plaintext** in the file - it acts as the decryption key
-- Only the person who signed knows the Sign-ID
+- **Random-Key Encryption**: Each signature uses a completely random 256-bit encryption key
+- **No Relationship with Sign-ID**: Encryption key is randomly generated, changes every time
+- All encryption/decryption happens client-side using JavaScript Web Crypto API
+- **AES-256-GCM encryption** with PBKDF2 key derivation (100,000 iterations)
+- **Key Wrapping**: Random encryption key is encrypted with Sign-ID-derived key
+- **Decryption with Sign-ID**: Sign-ID decrypts the wrapped key, which then decrypts the data
 - No data transmission to external servers
 - **SHA-256 hashing** ensures signature and document integrity
 - **Timestamp in ISO 8601 format** for precise time recording
+- Random IV (initialization vector) for each encryption ensures uniqueness
+
+### Encryption Details
+**Version 5.0 (Random-Key Encryption)**:
+- **Algorithm**: AES-256-GCM (authenticated encryption)
+- **Data Encryption Key**: Completely random, generated fresh for each signature
+- **Key Wrapping**: PBKDF2 with SHA-256, 100,000 iterations
+- **Key Encryption Key**: Derived from Sign-ID only
+- **Key Size**: 256 bits for both data and key-encryption keys
+- **Security Model**: Random encryption key has no relationship with Sign-ID, changes every time
+- **Backward Compatibility**: Legacy v1.0, v2.0, v3.0, and v4.0 formats are no longer supported
 
 ### Taiwan Legal Compliance (電子簽章法)
 This application complies with Taiwan's Electronic Signatures Act requirements:
@@ -121,23 +136,22 @@ legal validity may vary depending on the specific use case and acceptance by rel
 documents, consult with a legal professional.
 
 ### File Format (.esig)
-Version 2.0 (Taiwan compliant):
+Version 5.0 (Random-Key Encryption):
 ```json
 {
-  "version": "2.0",
+  "version": "5.0",
   "jurisdiction": "TW",
-  "data": "base64_encrypted_data"
+  "data": "base64_encrypted_data_with_wrapped_key"
 }
 ```
 
-Encrypted data includes:
-- Signer information (name, ID number, email, phone)
-- Signature image and its SHA-256 hash
-- Document (if attached) and its SHA-256 hash
-- ISO 8601 timestamp
-- Device ID and Sign-ID
-- Legal consent flag
-- Compliance metadata
+Encrypted data structure:
+- Key IV (12 bytes) - for wrapping the random key
+- Wrapped Key (48 bytes) - random encryption key, encrypted with Sign-ID-derived key
+- Data IV (12 bytes) - for encrypting the actual data
+- Encrypted Data (variable) - signature data encrypted with the random key
+
+**Note**: The random encryption key is different for every signature and has no relationship with the Sign-ID. The Sign-ID is only used to decrypt the wrapped key.
 
 ## 🛠️ Local Development
 

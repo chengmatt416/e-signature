@@ -215,6 +215,31 @@
             border-radius: 4px;
         }
 
+        /* Keypad Button Styles */
+        .keypad-btn {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .keypad-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .keypad-btn:active {
+            transform: scale(0.95);
+        }
 
         .info-item {
             margin-bottom: 10px;
@@ -398,6 +423,35 @@
             <label for="activationCodeInput" data-en="Activation Code (required):" data-zh="啟用碼（必填）：">Activation Code (required):</label>
             <input type="text" id="activationCodeInput" data-placeholder-en="Enter activation code from admin" data-placeholder-zh="輸入管理員提供的啟用碼" placeholder="Enter activation code from admin">
             <button class="btn-primary" onclick="validateActivationCode()" style="margin-top: 10px; width: 100%;" data-en="Validate Code" data-zh="驗證啟用碼">Validate Code</button>
+            
+            <!-- Direct Admin Sign Section -->
+            <div style="margin-top: 30px; padding: 20px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <h3 style="color: #1e40af; margin-bottom: 10px;" data-en="🔐 Admin Direct Sign" data-zh="🔐 管理員直接簽署">🔐 Admin Direct Sign</h3>
+                <p style="color: #1e40af; font-size: 0.9em; margin-bottom: 15px;" data-en="Enter admin passcode to sign directly without activation code" data-zh="輸入管理員密碼直接簽署，無需啟用碼">Enter admin passcode to sign directly without activation code</p>
+                
+                <div style="margin-bottom: 15px;">
+                    <label for="adminPasscodeDisplay" data-en="Admin Passcode:" data-zh="管理員密碼:">Admin Passcode:</label>
+                    <input type="password" id="adminPasscodeDisplay" readonly style="font-size: 1.5em; letter-spacing: 0.5em; text-align: center; background: white; cursor: not-allowed;" placeholder="•••••">
+                </div>
+                
+                <!-- Built-in Numeric Keypad -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 300px; margin: 0 auto 15px auto;">
+                    <button class="keypad-btn" onclick="appendAdminDigit('1')">1</button>
+                    <button class="keypad-btn" onclick="appendAdminDigit('2')">2</button>
+                    <button class="keypad-btn" onclick="appendAdminDigit('3')">3</button>
+                    <button class="keypad-btn" onclick="appendAdminDigit('4')">4</button>
+                    <button class="keypad-btn" onclick="appendAdminDigit('5')">5</button>
+                    <button class="keypad-btn" onclick="appendAdminDigit('6')">6</button>
+                    <button class="keypad-btn" onclick="appendAdminDigit('7')">7</button>
+                    <button class="keypad-btn" onclick="appendAdminDigit('8')">8</button>
+                    <button class="keypad-btn" onclick="appendAdminDigit('9')">9</button>
+                    <button class="keypad-btn" onclick="clearAdminPasscode()">Clear</button>
+                    <button class="keypad-btn" onclick="appendAdminDigit('0')">0</button>
+                    <button class="keypad-btn" onclick="deleteAdminDigit()">⌫</button>
+                </div>
+                
+                <button class="btn-primary" onclick="validateAdminPasscode()" style="width: 100%;" data-en="Sign with Admin Code" data-zh="使用管理員密碼簽署">Sign with Admin Code</button>
+            </div>
         </div>
 
         <div id="mainContent" style="display: none;">
@@ -489,7 +543,6 @@
 
     <script>
         // Configuration
-        const MASTER_KEY = 'e-signature-master-key-2024-secure-v1'; // Master encryption key
         const STORAGE_KEY = 'esig-activation-codes';
 
         let activationCodeValid = false;
@@ -634,6 +687,95 @@
         canvas.addEventListener('touchstart', startDrawing);
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
+
+        // Derive key-encryption-key from Sign-ID (used to encrypt the random data key)
+        async function deriveKeyEncryptionKey(signId) {
+            const encoder = new TextEncoder();
+            
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(signId),
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            const key = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: encoder.encode(signId + ':kek'),
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                true,
+                ['encrypt', 'decrypt']
+            );
+            
+            return key;
+        }
+
+        // Encrypt data using random key (changes every time, no relationship with sign-id)
+        async function encryptData(data, signId) {
+            const encoder = new TextEncoder();
+            const jsonStr = JSON.stringify(data);
+            
+            // Generate a completely random data encryption key (changes every time)
+            const randomDataKey = await crypto.subtle.generateKey(
+                { name: 'AES-GCM', length: 256 },
+                true,
+                ['encrypt']
+            );
+            
+            // Export the random key to raw format
+            const rawRandomKey = await crypto.subtle.exportKey('raw', randomDataKey);
+            
+            // Encrypt data with the random key
+            const dataIv = crypto.getRandomValues(new Uint8Array(12));
+            const encryptedData = await crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: dataIv
+                },
+                randomDataKey,
+                encoder.encode(jsonStr)
+            );
+            
+            // Encrypt the random key with Sign-ID-derived key
+            const kek = await deriveKeyEncryptionKey(signId);
+            const keyIv = crypto.getRandomValues(new Uint8Array(12));
+            const encryptedKey = await crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: keyIv
+                },
+                kek,
+                rawRandomKey
+            );
+            
+            // Combine: keyIv(12) + encryptedKey + dataIv(12) + encryptedData
+            const keyIvArray = new Uint8Array(keyIv);
+            const encryptedKeyArray = new Uint8Array(encryptedKey);
+            const dataIvArray = new Uint8Array(dataIv);
+            const encryptedDataArray = new Uint8Array(encryptedData);
+            
+            const combined = new Uint8Array(
+                12 + encryptedKeyArray.length + 12 + encryptedDataArray.length
+            );
+            let offset = 0;
+            combined.set(keyIvArray, offset); offset += 12;
+            combined.set(encryptedKeyArray, offset); offset += encryptedKeyArray.length;
+            combined.set(dataIvArray, offset); offset += 12;
+            combined.set(encryptedDataArray, offset);
+            
+            // Convert to base64
+            let binary = '';
+            for (let i = 0; i < combined.length; i++) {
+                binary += String.fromCharCode(combined[i]);
+            }
+            return btoa(binary);
+        }
 
         // Document file upload handling
         const documentFileInput = document.getElementById('documentFileInput');
@@ -788,6 +930,50 @@
             return Math.abs(hash).toString(36).toUpperCase();
         }
 
+        // Admin passcode variables
+        let adminPasscodeInput = '';
+        const ADMIN_PASSCODE = '17808'; // Must match admin.html
+
+        // Keypad functions for admin code
+        function appendAdminDigit(digit) {
+            if (adminPasscodeInput.length < 10) { // Limit to 10 digits
+                adminPasscodeInput += digit;
+                updateAdminDisplay();
+            }
+        }
+
+        function deleteAdminDigit() {
+            adminPasscodeInput = adminPasscodeInput.slice(0, -1);
+            updateAdminDisplay();
+        }
+
+        function clearAdminPasscode() {
+            adminPasscodeInput = '';
+            updateAdminDisplay();
+        }
+
+        function updateAdminDisplay() {
+            const display = document.getElementById('adminPasscodeDisplay');
+            display.value = '•'.repeat(adminPasscodeInput.length);
+        }
+
+        // Validate admin passcode and enable signing directly
+        function validateAdminPasscode() {
+            if (adminPasscodeInput === ADMIN_PASSCODE) {
+                activationCodeValid = true;
+                
+                // Show main content
+                document.getElementById('activationSection').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                
+                showAlert('adminAccessGranted', 'success');
+                clearAdminPasscode();
+            } else {
+                showAlert('invalidAdminPasscode', 'error');
+                clearAdminPasscode();
+            }
+        }
+
         // Validate activation code cryptographically
         function validateActivationCode() {
             const code = document.getElementById('activationCodeInput').value.trim();
@@ -819,7 +1005,6 @@
             }
 
             // Validate signature using the known admin passcode
-            const ADMIN_PASSCODE = '17808'; // Must match admin.html
             const secret = `${timestamp}:${random}:${ADMIN_PASSCODE}`;
             const expectedSignature = simpleHash(secret);
 
@@ -843,23 +1028,6 @@
             ctx.fillRect(0, 0, rect.width, rect.height);
             hasSignature = false;
             showAlert('signatureCleared', 'success');
-        }
-
-        // Simple encryption function using XOR with key
-        function encryptData(data, key) {
-            const jsonStr = JSON.stringify(data);
-            let encrypted = '';
-            for (let i = 0; i < jsonStr.length; i++) {
-                const charCode = jsonStr.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-                encrypted += String.fromCharCode(charCode);
-            }
-            // Convert to UTF-8 bytes then base64 to handle all characters
-            const utf8Bytes = new TextEncoder().encode(encrypted);
-            let binary = '';
-            for (let i = 0; i < utf8Bytes.length; i++) {
-                binary += String.fromCharCode(utf8Bytes[i]);
-            }
-            return btoa(binary);
         }
 
         // Save and export signature
@@ -906,7 +1074,7 @@
 
                 // Prepare data
                 const signatureData = {
-                    version: '2.0', // Updated version for Taiwan compliance
+                    version: '3.0', // Updated version for enhanced encryption
                     signId: signId,
                     datetime: document.getElementById('datetime').textContent,
                     deviceId: document.getElementById('deviceId').textContent,
@@ -927,13 +1095,13 @@
                     signatureData.documentHash = await sha256(uploadedDocument);
                 }
 
-                // Encrypt data using Sign ID as part of the key
-                const encryptionKey = MASTER_KEY + signId;
-                const encryptedData = encryptData(signatureData, encryptionKey);
+                // Encrypt data using random key (changes every time)
+                // Random key is encrypted with Sign-ID-derived key
+                const encryptedData = await encryptData(signatureData, signId);
 
                 // Create file content (signId is removed from plaintext, only in encrypted data)
                 const fileContent = {
-                    version: '2.0',
+                    version: '5.0', // Updated version for random-key encryption
                     jurisdiction: 'TW',
                     data: encryptedData
                 };
@@ -967,10 +1135,14 @@
             codeExpired: { en: 'Activation code has expired! Please request a new code.', zh: '啟用碼已過期！請申請新的啟用碼。' },
             codeValidated: { en: 'Activation code validated successfully!', zh: '啟用碼驗證成功！' },
             invalidCode: { en: 'Invalid activation code!', zh: '啟用碼無效！' },
+            adminAccessGranted: { en: 'Admin access granted! You can now sign documents.', zh: '管理員存取已授權！您現在可以簽署文件。' },
+            invalidAdminPasscode: { en: 'Invalid admin passcode!', zh: '管理員密碼無效！' },
             signatureCleared: { en: 'Signature cleared', zh: '簽名已清除' },
             noSignature: { en: 'Please draw your signature first', zh: '請先繪製您的簽名' },
             fillRequired: { en: 'Please fill in all required fields (Full Name and National ID/Passport)', zh: '請填寫所有必填欄位（姓名和身分證字號/護照號碼）' },
             agreeTerms: { en: 'Please agree to the legal notice', zh: '請同意法律聲明' },
+            passphraseRequired: { en: 'Passphrase must be at least 8 characters long', zh: '密碼必須至少 8 個字元' },
+            passphraseMismatch: { en: 'Passphrases do not match', zh: '密碼不符合' },
             signatureSaved: { en: 'Signature saved successfully! Keep your Sign ID safe: ', zh: '簽章已成功儲存！請妥善保管您的簽章編號：' },
             saveError: { en: 'Error saving signature: ', zh: '儲存簽章時發生錯誤：' }
         };
@@ -1003,7 +1175,7 @@
         function applyLanguage() {
             const elements = document.querySelectorAll('[data-en][data-zh]');
             elements.forEach(el => {
-                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel')) {
+                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel' || el.type === 'password')) {
                     // For input placeholders
                     if (el.hasAttribute('data-placeholder-en') && el.hasAttribute('data-placeholder-zh')) {
                         el.placeholder = currentLang === 'en' ? el.getAttribute('data-placeholder-en') : el.getAttribute('data-placeholder-zh');

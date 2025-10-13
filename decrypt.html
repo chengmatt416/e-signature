@@ -525,8 +525,7 @@
     </div>
 
     <script>
-        // Configuration
-        const MASTER_KEY = 'e-signature-master-key-2024-secure-v1'; // Must match sign.html
+        // Configuration - no hardcoded master key
 
         let uploadedFile = null;
         let decryptedData = null;
@@ -584,11 +583,143 @@
             showAlert('File loaded successfully', 'success');
         }
 
-        // Decryption function
-        function decryptData(encryptedData, key) {
+        // Derive decryption key from Sign-ID only  
+        async function deriveDecryptionKey(signId) {
+            const encoder = new TextEncoder();
+            
+            // Decryption only needs Sign-ID
+            const decryptionSeed = signId;
+            
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(decryptionSeed),
+                'PBKDF2',
+                false,
+        // Derive key-encryption-key from Sign-ID (same as in sign.html)
+        async function deriveKeyEncryptionKey(signId) {
+            const encoder = new TextEncoder();
+            
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(signId),
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            const key = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: encoder.encode(signId + ':kek'),
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                true,
+                ['encrypt', 'decrypt']
+            );
+            
+            return key;
+        }
+
+        // Decrypt data using random key (for v5.0)
+        async function decryptDataV5(encryptedData, signId) {
             try {
-                const decoded = atob(encryptedData); // Base64 decode
-                // Convert binary string back to UTF-8 bytes
+                // Decode base64
+                const decoded = atob(encryptedData);
+                const bytes = new Uint8Array(decoded.length);
+                for (let i = 0; i < decoded.length; i++) {
+                    bytes[i] = decoded.charCodeAt(i);
+                }
+                
+                // Extract: keyIv(12) + encryptedKey(variable) + dataIv(12) + encryptedData
+                // The encrypted key is 48 bytes (32 byte key + 16 byte GCM tag)
+                let offset = 0;
+                const keyIv = bytes.slice(offset, offset + 12); offset += 12;
+                const encryptedKey = bytes.slice(offset, offset + 48); offset += 48;
+                const dataIv = bytes.slice(offset, offset + 12); offset += 12;
+                const encryptedDataBytes = bytes.slice(offset);
+                
+                // Derive key-encryption-key from Sign-ID
+                const kek = await deriveKeyEncryptionKey(signId);
+                
+                // Decrypt the random data key
+                const decryptedKeyBuffer = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: keyIv
+                    },
+                    kek,
+                    encryptedKey
+                );
+                
+                // Import the decrypted random key
+                const randomDataKey = await crypto.subtle.importKey(
+                    'raw',
+                    decryptedKeyBuffer,
+                    'AES-GCM',
+                    false,
+                    ['decrypt']
+                );
+                
+                // Decrypt the actual data
+                const decryptedBuffer = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: dataIv
+                    },
+                    randomDataKey,
+                    encryptedDataBytes
+                );
+                
+                const decoder = new TextDecoder();
+                const jsonStr = decoder.decode(decryptedBuffer);
+                return JSON.parse(jsonStr);
+            } catch (error) {
+                throw new Error('Invalid Sign ID or corrupted file');
+            }
+        }
+
+        // Decrypt data using AES-GCM with Sign-ID only (for v4.0)
+        async function decryptDataV4(encryptedData, signId) {
+            try {
+                // Decode base64
+                const decoded = atob(encryptedData);
+                const bytes = new Uint8Array(decoded.length);
+                for (let i = 0; i < decoded.length; i++) {
+                    bytes[i] = decoded.charCodeAt(i);
+                }
+                
+                // Extract IV (first 12 bytes) and encrypted data
+                const iv = bytes.slice(0, 12);
+                const data = bytes.slice(12);
+                
+                // Derive decryption key using only Sign-ID
+                const key = await deriveDecryptionKey(signId);
+                
+                // Decrypt
+                const decryptedBuffer = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: iv
+                    },
+                    key,
+                    data
+                );
+                
+                const decoder = new TextDecoder();
+                const jsonStr = decoder.decode(decryptedBuffer);
+                return JSON.parse(jsonStr);
+            } catch (error) {
+                throw new Error('Invalid Sign ID or corrupted file');
+            }
+        }
+
+        // Legacy decryption function for v1.0 and v2.0 (XOR-based)
+        function decryptDataLegacy(encryptedData, key) {
+            try {
+                const decoded = atob(encryptedData);
                 const bytes = new Uint8Array(decoded.length);
                 for (let i = 0; i < decoded.length; i++) {
                     bytes[i] = decoded.charCodeAt(i);
@@ -616,7 +747,7 @@
 
             const signIdInput = document.getElementById('signIdInput').value.trim();
             
-            // Sign ID is now required for decryption
+            // Sign ID is required for decryption
             if (!signIdInput) {
                 showAlert('Please enter the Sign ID to decrypt the signature', 'error');
                 return;
@@ -632,16 +763,26 @@
                     throw new Error('Invalid file format');
                 }
 
-                // Check version and provide info
-                if (fileData.version === '1.0') {
-                    showAlert('Legacy signature format detected (v1.0). Signer identity not available.', 'success');
-                } else if (fileData.version === '2.0') {
-                    showAlert('Taiwan-compliant signature format (v2.0) with full signer information.', 'success');
+                // Check version and decrypt accordingly
+                if (fileData.version === '1.0' || fileData.version === '2.0') {
+                    // Legacy format - old encryption
+                    showAlert('⚠️ Legacy signature format detected (v' + fileData.version + '). Please re-sign with the new version.', 'error');
+                    throw new Error('Legacy format not supported. For security reasons, please re-sign with the new version.');
+                } else if (fileData.version === '3.0') {
+                    // Passphrase-based format
+                    showAlert('⚠️ This signature uses v3.0 format which required a passphrase. Please re-sign with v5.0.', 'error');
+                    throw new Error('v3.0 format not supported. Please re-sign with v5.0.');
+                } else if (fileData.version === '4.0') {
+                    // Time-bound encryption format
+                    showAlert('⚠️ This signature uses v4.0 format. Please re-sign with v5.0 for random-key encryption.', 'error');
+                    throw new Error('v4.0 format not supported. Please re-sign with v5.0.');
+                } else if (fileData.version === '5.0') {
+                    // New format - Random key with Sign-ID decryption
+                    showAlert('Random-key encryption format (v5.0) detected.', 'success');
+                    decryptedData = await decryptDataV5(fileData.data, signIdInput);
+                } else {
+                    throw new Error('Unsupported file version: ' + fileData.version);
                 }
-
-                // Decrypt data using Sign ID as part of the key
-                const decryptionKey = MASTER_KEY + signIdInput;
-                decryptedData = decryptData(fileData.data, decryptionKey);
 
                 // Validate decrypted data
                 if (!decryptedData.signId || !decryptedData.signature) {
@@ -929,7 +1070,7 @@
         function applyLanguage() {
             const elements = document.querySelectorAll('[data-en][data-zh]');
             elements.forEach(el => {
-                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel')) {
+                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel' || el.type === 'password')) {
                     // For input placeholders
                     if (el.hasAttribute('data-placeholder-en') && el.hasAttribute('data-placeholder-zh')) {
                         el.placeholder = currentLang === 'en' ? el.getAttribute('data-placeholder-en') : el.getAttribute('data-placeholder-zh');
