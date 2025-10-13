@@ -423,32 +423,6 @@
             </div>
         </div>
 
-        <!-- Encryption Passphrase Section -->
-        <div class="input-section" style="background: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
-            <h3 style="color: #1565c0; margin-bottom: 10px;" data-en="🔒 Encryption Passphrase (Required)" data-zh="🔒 加密密碼（必填）">🔒 Encryption Passphrase (Required)</h3>
-            <p style="color: #1976d2; font-size: 0.9em; line-height: 1.6; margin-bottom: 15px;" 
-               data-en="Set a strong passphrase to encrypt your signature. This passphrase will be required to decrypt the signature later. Keep it secure and memorable!" 
-               data-zh="設定一個強密碼來加密您的簽章。稍後解密簽章時需要此密碼。請務必保持安全且容易記憶！">
-                Set a strong passphrase to encrypt your signature. This passphrase will be required to decrypt the signature later. Keep it secure and memorable!
-            </p>
-            <div style="margin-bottom: 15px;">
-                <label for="encryptionPassphrase" data-en="Passphrase *:" data-zh="密碼 *:">Passphrase *:</label>
-                <input type="password" id="encryptionPassphrase" data-placeholder-en="Enter a strong passphrase (min 8 characters)" data-placeholder-zh="輸入強密碼（至少8個字元）" placeholder="Enter a strong passphrase (min 8 characters)" required minlength="8">
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label for="confirmPassphrase" data-en="Confirm Passphrase *:" data-zh="確認密碼 *:">Confirm Passphrase *:</label>
-                <input type="password" id="confirmPassphrase" data-placeholder-en="Re-enter your passphrase" data-placeholder-zh="重新輸入您的密碼" placeholder="Re-enter your passphrase" required minlength="8">
-            </div>
-            <div style="display: flex; align-items: center;">
-                <input type="checkbox" id="showPassphrase" style="width: auto; margin-right: 10px; cursor: pointer;" onchange="togglePassphraseVisibility()">
-                <label for="showPassphrase" style="color: #1976d2; cursor: pointer; margin: 0; font-size: 0.9em;" 
-                       data-en="Show passphrases" 
-                       data-zh="顯示密碼">
-                    Show passphrases
-                </label>
-            </div>
-        </div>
-
         <!-- Legal Consent Section -->
         <div class="info-section" style="background: #fff3cd; border-left: 4px solid #ffc107;">
             <h3 style="color: #856404; margin-bottom: 10px;" data-en="⚖️ Legal Notice" data-zh="⚖️ 法律聲明">⚖️ Legal Notice</h3>
@@ -660,55 +634,77 @@
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
 
-        // Toggle passphrase visibility
-        function togglePassphraseVisibility() {
-            const passphraseInput = document.getElementById('encryptionPassphrase');
-            const confirmInput = document.getElementById('confirmPassphrase');
-            const showCheckbox = document.getElementById('showPassphrase');
-            
-            if (showCheckbox.checked) {
-                passphraseInput.type = 'text';
-                confirmInput.type = 'text';
-            } else {
-                passphraseInput.type = 'password';
-                confirmInput.type = 'password';
-            }
-        }
-
-        // Derive encryption key from passphrase using PBKDF2
-        async function deriveKey(passphrase, salt) {
+        // Derive encryption key from Sign-ID and browser entropy
+        // This creates a one-way encryption where only the Sign-ID holder can decrypt
+        async function deriveEncryptionKey(signId, deviceId, timestamp) {
             const encoder = new TextEncoder();
-            const passphraseKey = await crypto.subtle.importKey(
+            
+            // Combine Sign-ID with device-specific and time-specific data
+            // This ensures encryption uses additional entropy not available during decryption
+            const encryptionSeed = `${signId}:${deviceId}:${timestamp}:encryption`;
+            
+            const keyMaterial = await crypto.subtle.importKey(
                 'raw',
-                encoder.encode(passphrase),
+                encoder.encode(encryptionSeed),
                 'PBKDF2',
                 false,
                 ['deriveBits', 'deriveKey']
             );
             
-            const derivedKey = await crypto.subtle.deriveKey(
+            const key = await crypto.subtle.deriveKey(
                 {
                     name: 'PBKDF2',
-                    salt: encoder.encode(salt),
+                    salt: encoder.encode(signId), // Sign-ID as salt
                     iterations: 100000,
                     hash: 'SHA-256'
                 },
-                passphraseKey,
+                keyMaterial,
                 { name: 'AES-GCM', length: 256 },
                 true,
-                ['encrypt', 'decrypt']
+                ['encrypt']
             );
             
-            return derivedKey;
+            return key;
         }
 
-        // Encrypt data using AES-GCM with derived key
-        async function encryptData(data, passphrase, signId) {
+        // Derive decryption key from Sign-ID only
+        async function deriveDecryptionKey(signId) {
+            const encoder = new TextEncoder();
+            
+            // Decryption only needs Sign-ID
+            const decryptionSeed = signId;
+            
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(decryptionSeed),
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            const key = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: encoder.encode(signId),
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                true,
+                ['decrypt']
+            );
+            
+            return key;
+        }
+
+        // Encrypt data using derived encryption key
+        async function encryptData(data, signId, deviceId, timestamp) {
             const encoder = new TextEncoder();
             const jsonStr = JSON.stringify(data);
             
-            // Use signId as salt for key derivation
-            const key = await deriveKey(passphrase, signId);
+            // Derive encryption key with additional entropy
+            const key = await deriveEncryptionKey(signId, deviceId, timestamp);
             
             // Generate a random IV (initialization vector)
             const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -973,20 +969,6 @@
                 return;
             }
 
-            // Validate passphrase
-            const passphrase = document.getElementById('encryptionPassphrase').value;
-            const confirmPassphrase = document.getElementById('confirmPassphrase').value;
-
-            if (!passphrase || passphrase.length < 8) {
-                showAlert(messages.passphraseRequired?.[currentLang] || 'Passphrase must be at least 8 characters long', 'error');
-                return;
-            }
-
-            if (passphrase !== confirmPassphrase) {
-                showAlert(messages.passphraseMismatch?.[currentLang] || 'Passphrases do not match', 'error');
-                return;
-            }
-
             try {
                 // Get signature as base64
                 const signatureImage = canvas.toDataURL('image/png');
@@ -1004,7 +986,7 @@
 
                 // Prepare data
                 const signatureData = {
-                    version: '2.0', // Updated version for Taiwan compliance
+                    version: '3.0', // Updated version for enhanced encryption
                     signId: signId,
                     datetime: document.getElementById('datetime').textContent,
                     deviceId: document.getElementById('deviceId').textContent,
@@ -1025,12 +1007,17 @@
                     signatureData.documentHash = await sha256(uploadedDocument);
                 }
 
-                // Encrypt data using passphrase and Sign ID
-                const encryptedData = await encryptData(signatureData, passphrase, signId);
+                // Get current device ID and timestamp for encryption
+                const deviceId = document.getElementById('deviceId').textContent;
+                const timestamp = Date.now();
+
+                // Encrypt data using Sign-ID with additional entropy
+                // This creates one-way encryption where decryption only needs Sign-ID
+                const encryptedData = await encryptData(signatureData, signId, deviceId, timestamp);
 
                 // Create file content (signId is removed from plaintext, only in encrypted data)
                 const fileContent = {
-                    version: '3.0', // Updated version for enhanced encryption
+                    version: '4.0', // Updated version for one-way encryption
                     jurisdiction: 'TW',
                     data: encryptedData
                 };

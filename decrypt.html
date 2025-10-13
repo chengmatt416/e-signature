@@ -434,19 +434,6 @@
             <input type="text" id="signIdInput" data-placeholder-en="Enter your Sign ID (e.g., SIG-1234567890-ABC123)" data-placeholder-zh="輸入您的簽章編號（例如：SIG-1234567890-ABC123）" placeholder="Enter your Sign ID (e.g., SIG-1234567890-ABC123)" required>
         </div>
 
-        <div class="input-section" style="background: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
-            <label for="decryptionPassphrase" data-en="🔒 Decryption Passphrase:" data-zh="🔒 解密密碼:">🔒 Decryption Passphrase:</label>
-            <input type="password" id="decryptionPassphrase" data-placeholder-en="Enter the passphrase used during signing" data-placeholder-zh="輸入簽署時使用的密碼" placeholder="Enter the passphrase used during signing" required>
-            <div style="display: flex; align-items: center; margin-top: 10px;">
-                <input type="checkbox" id="showDecryptPassphrase" style="width: auto; margin-right: 10px; cursor: pointer;" onchange="toggleDecryptPassphraseVisibility()">
-                <label for="showDecryptPassphrase" style="color: #1976d2; cursor: pointer; margin: 0; font-size: 0.9em;" 
-                       data-en="Show passphrase" 
-                       data-zh="顯示密碼">
-                    Show passphrase
-                </label>
-            </div>
-        </div>
-
         <div class="button-group">
             <button class="btn-primary" onclick="decryptSignature()" data-en="Decrypt & Verify" data-zh="解密並驗證">Decrypt & Verify</button>
             <button class="btn-secondary" onclick="reset()" data-en="Reset" data-zh="重設">Reset</button>
@@ -596,47 +583,39 @@
             showAlert('File loaded successfully', 'success');
         }
 
-        // Toggle passphrase visibility
-        function toggleDecryptPassphraseVisibility() {
-            const passphraseInput = document.getElementById('decryptionPassphrase');
-            const showCheckbox = document.getElementById('showDecryptPassphrase');
-            
-            if (showCheckbox.checked) {
-                passphraseInput.type = 'text';
-            } else {
-                passphraseInput.type = 'password';
-            }
-        }
-
-        // Derive decryption key from passphrase using PBKDF2
-        async function deriveKey(passphrase, salt) {
+        // Derive decryption key from Sign-ID only  
+        async function deriveDecryptionKey(signId) {
             const encoder = new TextEncoder();
-            const passphraseKey = await crypto.subtle.importKey(
+            
+            // Decryption only needs Sign-ID
+            const decryptionSeed = signId;
+            
+            const keyMaterial = await crypto.subtle.importKey(
                 'raw',
-                encoder.encode(passphrase),
+                encoder.encode(decryptionSeed),
                 'PBKDF2',
                 false,
                 ['deriveBits', 'deriveKey']
             );
             
-            const derivedKey = await crypto.subtle.deriveKey(
+            const key = await crypto.subtle.deriveKey(
                 {
                     name: 'PBKDF2',
-                    salt: encoder.encode(salt),
+                    salt: encoder.encode(signId),
                     iterations: 100000,
                     hash: 'SHA-256'
                 },
-                passphraseKey,
+                keyMaterial,
                 { name: 'AES-GCM', length: 256 },
                 true,
-                ['encrypt', 'decrypt']
+                ['decrypt']
             );
             
-            return derivedKey;
+            return key;
         }
 
-        // Decrypt data using AES-GCM with derived key (for v3.0)
-        async function decryptDataV3(encryptedData, passphrase, signId) {
+        // Decrypt data using AES-GCM with Sign-ID only (for v4.0)
+        async function decryptDataV4(encryptedData, signId) {
             try {
                 // Decode base64
                 const decoded = atob(encryptedData);
@@ -649,8 +628,8 @@
                 const iv = bytes.slice(0, 12);
                 const data = bytes.slice(12);
                 
-                // Derive key using signId as salt
-                const key = await deriveKey(passphrase, signId);
+                // Derive decryption key using only Sign-ID
+                const key = await deriveDecryptionKey(signId);
                 
                 // Decrypt
                 const decryptedBuffer = await crypto.subtle.decrypt(
@@ -666,7 +645,7 @@
                 const jsonStr = decoder.decode(decryptedBuffer);
                 return JSON.parse(jsonStr);
             } catch (error) {
-                throw new Error('Invalid passphrase, Sign ID, or corrupted file');
+                throw new Error('Invalid Sign ID or corrupted file');
             }
         }
 
@@ -700,7 +679,6 @@
             }
 
             const signIdInput = document.getElementById('signIdInput').value.trim();
-            const passphrase = document.getElementById('decryptionPassphrase').value;
             
             // Sign ID is required for decryption
             if (!signIdInput) {
@@ -720,25 +698,24 @@
 
                 // Check version and decrypt accordingly
                 if (fileData.version === '1.0' || fileData.version === '2.0') {
-                    // Legacy format - requires hardcoded master key
-                    showAlert('⚠️ Legacy signature format detected (v' + fileData.version + '). This version uses the old encryption method. Please upgrade to v3.0 for enhanced security.', 'error');
-                    throw new Error('Legacy format not supported. This signature uses the old encryption method with a hardcoded master key. For security reasons, please re-sign with the new version.');
+                    // Legacy format - old encryption
+                    showAlert('⚠️ Legacy signature format detected (v' + fileData.version + '). This version uses the old encryption method. Please re-sign with the new version.', 'error');
+                    throw new Error('Legacy format not supported. For security reasons, please re-sign with the new version.');
                 } else if (fileData.version === '3.0') {
-                    // New format - requires passphrase
-                    if (!passphrase) {
-                        showAlert('Please enter the passphrase used during signing', 'error');
-                        return;
-                    }
-                    
-                    showAlert('Enhanced security signature format (v3.0) with passphrase-based encryption.', 'success');
-                    decryptedData = await decryptDataV3(fileData.data, passphrase, signIdInput);
+                    // Previous passphrase-based format
+                    showAlert('⚠️ This signature uses v3.0 format which required a passphrase. Please re-sign with v4.0 for Sign-ID-only decryption.', 'error');
+                    throw new Error('v3.0 format not supported. Please re-sign with v4.0.');
+                } else if (fileData.version === '4.0') {
+                    // New format - Sign-ID only decryption
+                    showAlert('Sign-ID-only decryption format (v4.0) detected.', 'success');
+                    decryptedData = await decryptDataV4(fileData.data, signIdInput);
                 } else {
                     throw new Error('Unsupported file version: ' + fileData.version);
                 }
 
                 // Validate decrypted data
                 if (!decryptedData.signId || !decryptedData.signature) {
-                    throw new Error('Decryption failed - incorrect passphrase, Sign ID, or corrupted file');
+                    throw new Error('Decryption failed - incorrect Sign ID or corrupted file');
                 }
 
                 // Verify that the provided Sign ID matches the one in decrypted data
