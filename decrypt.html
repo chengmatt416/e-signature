@@ -434,6 +434,19 @@
             <input type="text" id="signIdInput" data-placeholder-en="Enter your Sign ID (e.g., SIG-1234567890-ABC123)" data-placeholder-zh="輸入您的簽章編號（例如：SIG-1234567890-ABC123）" placeholder="Enter your Sign ID (e.g., SIG-1234567890-ABC123)" required>
         </div>
 
+        <div class="input-section" style="background: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
+            <label for="decryptionPassphrase" data-en="🔒 Decryption Passphrase:" data-zh="🔒 解密密碼:">🔒 Decryption Passphrase:</label>
+            <input type="password" id="decryptionPassphrase" data-placeholder-en="Enter the passphrase used during signing" data-placeholder-zh="輸入簽署時使用的密碼" placeholder="Enter the passphrase used during signing" required>
+            <div style="display: flex; align-items: center; margin-top: 10px;">
+                <input type="checkbox" id="showDecryptPassphrase" style="width: auto; margin-right: 10px; cursor: pointer;" onchange="toggleDecryptPassphraseVisibility()">
+                <label for="showDecryptPassphrase" style="color: #1976d2; cursor: pointer; margin: 0; font-size: 0.9em;" 
+                       data-en="Show passphrase" 
+                       data-zh="顯示密碼">
+                    Show passphrase
+                </label>
+            </div>
+        </div>
+
         <div class="button-group">
             <button class="btn-primary" onclick="decryptSignature()" data-en="Decrypt & Verify" data-zh="解密並驗證">Decrypt & Verify</button>
             <button class="btn-secondary" onclick="reset()" data-en="Reset" data-zh="重設">Reset</button>
@@ -525,8 +538,7 @@
     </div>
 
     <script>
-        // Configuration
-        const MASTER_KEY = 'e-signature-master-key-2024-secure-v1'; // Must match sign.html
+        // Configuration - no hardcoded master key
 
         let uploadedFile = null;
         let decryptedData = null;
@@ -584,11 +596,84 @@
             showAlert('File loaded successfully', 'success');
         }
 
-        // Decryption function
-        function decryptData(encryptedData, key) {
+        // Toggle passphrase visibility
+        function toggleDecryptPassphraseVisibility() {
+            const passphraseInput = document.getElementById('decryptionPassphrase');
+            const showCheckbox = document.getElementById('showDecryptPassphrase');
+            
+            if (showCheckbox.checked) {
+                passphraseInput.type = 'text';
+            } else {
+                passphraseInput.type = 'password';
+            }
+        }
+
+        // Derive decryption key from passphrase using PBKDF2
+        async function deriveKey(passphrase, salt) {
+            const encoder = new TextEncoder();
+            const passphraseKey = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(passphrase),
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            const derivedKey = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: encoder.encode(salt),
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                passphraseKey,
+                { name: 'AES-GCM', length: 256 },
+                true,
+                ['encrypt', 'decrypt']
+            );
+            
+            return derivedKey;
+        }
+
+        // Decrypt data using AES-GCM with derived key (for v3.0)
+        async function decryptDataV3(encryptedData, passphrase, signId) {
             try {
-                const decoded = atob(encryptedData); // Base64 decode
-                // Convert binary string back to UTF-8 bytes
+                // Decode base64
+                const decoded = atob(encryptedData);
+                const bytes = new Uint8Array(decoded.length);
+                for (let i = 0; i < decoded.length; i++) {
+                    bytes[i] = decoded.charCodeAt(i);
+                }
+                
+                // Extract IV (first 12 bytes) and encrypted data
+                const iv = bytes.slice(0, 12);
+                const data = bytes.slice(12);
+                
+                // Derive key using signId as salt
+                const key = await deriveKey(passphrase, signId);
+                
+                // Decrypt
+                const decryptedBuffer = await crypto.subtle.decrypt(
+                    {
+                        name: 'AES-GCM',
+                        iv: iv
+                    },
+                    key,
+                    data
+                );
+                
+                const decoder = new TextDecoder();
+                const jsonStr = decoder.decode(decryptedBuffer);
+                return JSON.parse(jsonStr);
+            } catch (error) {
+                throw new Error('Invalid passphrase, Sign ID, or corrupted file');
+            }
+        }
+
+        // Legacy decryption function for v1.0 and v2.0 (XOR-based)
+        function decryptDataLegacy(encryptedData, key) {
+            try {
+                const decoded = atob(encryptedData);
                 const bytes = new Uint8Array(decoded.length);
                 for (let i = 0; i < decoded.length; i++) {
                     bytes[i] = decoded.charCodeAt(i);
@@ -615,8 +700,9 @@
             }
 
             const signIdInput = document.getElementById('signIdInput').value.trim();
+            const passphrase = document.getElementById('decryptionPassphrase').value;
             
-            // Sign ID is now required for decryption
+            // Sign ID is required for decryption
             if (!signIdInput) {
                 showAlert('Please enter the Sign ID to decrypt the signature', 'error');
                 return;
@@ -632,20 +718,27 @@
                     throw new Error('Invalid file format');
                 }
 
-                // Check version and provide info
-                if (fileData.version === '1.0') {
-                    showAlert('Legacy signature format detected (v1.0). Signer identity not available.', 'success');
-                } else if (fileData.version === '2.0') {
-                    showAlert('Taiwan-compliant signature format (v2.0) with full signer information.', 'success');
+                // Check version and decrypt accordingly
+                if (fileData.version === '1.0' || fileData.version === '2.0') {
+                    // Legacy format - requires hardcoded master key
+                    showAlert('⚠️ Legacy signature format detected (v' + fileData.version + '). This version uses the old encryption method. Please upgrade to v3.0 for enhanced security.', 'error');
+                    throw new Error('Legacy format not supported. This signature uses the old encryption method with a hardcoded master key. For security reasons, please re-sign with the new version.');
+                } else if (fileData.version === '3.0') {
+                    // New format - requires passphrase
+                    if (!passphrase) {
+                        showAlert('Please enter the passphrase used during signing', 'error');
+                        return;
+                    }
+                    
+                    showAlert('Enhanced security signature format (v3.0) with passphrase-based encryption.', 'success');
+                    decryptedData = await decryptDataV3(fileData.data, passphrase, signIdInput);
+                } else {
+                    throw new Error('Unsupported file version: ' + fileData.version);
                 }
-
-                // Decrypt data using Sign ID as part of the key
-                const decryptionKey = MASTER_KEY + signIdInput;
-                decryptedData = decryptData(fileData.data, decryptionKey);
 
                 // Validate decrypted data
                 if (!decryptedData.signId || !decryptedData.signature) {
-                    throw new Error('Decryption failed - incorrect Sign ID or corrupted file');
+                    throw new Error('Decryption failed - incorrect passphrase, Sign ID, or corrupted file');
                 }
 
                 // Verify that the provided Sign ID matches the one in decrypted data
@@ -929,7 +1022,7 @@
         function applyLanguage() {
             const elements = document.querySelectorAll('[data-en][data-zh]');
             elements.forEach(el => {
-                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel')) {
+                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel' || el.type === 'password')) {
                     // For input placeholders
                     if (el.hasAttribute('data-placeholder-en') && el.hasAttribute('data-placeholder-zh')) {
                         el.placeholder = currentLang === 'en' ? el.getAttribute('data-placeholder-en') : el.getAttribute('data-placeholder-zh');

@@ -5,13 +5,14 @@ A secure, client-side digital signature application that runs entirely in your b
 ## 🚀 Features
 
 - **✍️ Signature Canvas**: Draw your signature using mouse or touch
-- **🔒 Encryption**: All data encrypted with a secure master key combined with Sign-ID
+- **🔒 Enhanced Encryption**: All data encrypted with AES-256-GCM using user-provided passphrase and PBKDF2 key derivation
+- **🛡️ Zero-Knowledge Security**: No hardcoded master keys - even source code owners cannot decrypt signatures without the passphrase
 - **📅 Auto-Fill**: Automatically captures date, time, and device ID
-- **🆔 Unique Sign-ID**: Each signature gets a unique identifier that acts as a decryption key
+- **🆔 Unique Sign-ID**: Each signature gets a unique identifier that acts as a salt for key derivation
 - **💾 Export**: Download encrypted `.esig` files
-- **✅ Verification**: Decrypt and verify signature authenticity
+- **✅ Verification**: Decrypt and verify signature authenticity with passphrase and Sign-ID
 - **🔐 Privacy**: 100% client-side - no data sent to servers
-- **🔑 Sign-ID Privacy**: Sign-ID is encrypted and only known to the signer
+- **🔑 Passphrase Protection**: User-controlled encryption - only you know the passphrase
 - **📱 Progressive Web App**: Install on Android, iOS, or desktop for offline use
 - **⚖️ Taiwan Legal Compliance**: Compliant with Taiwan's Electronic Signatures Act (電子簽章法)
 - **🔒 Integrity Verification**: SHA-256 hash ensures signature and document integrity
@@ -27,30 +28,35 @@ A secure, client-side digital signature application that runs entirely in your b
    - Full Name (姓名)
    - National ID or Passport Number (身分證字號/護照號碼)
    - Email and Phone (optional)
-4. **Read and accept the legal notice** regarding Taiwan's Electronic Signatures Act
-5. Draw your signature on the canvas
-6. (Optional) Upload a document to be signed
-7. System automatically fills:
+4. **Set a strong encryption passphrase** (minimum 8 characters):
+   - This passphrase will be required to decrypt the signature
+   - Keep it secure and memorable - it cannot be recovered if lost
+   - The passphrase is never stored anywhere
+5. **Read and accept the legal notice** regarding Taiwan's Electronic Signatures Act
+6. Draw your signature on the canvas
+7. (Optional) Upload a document to be signed
+8. System automatically fills:
    - Unique Sign-ID
    - Current date and time (ISO 8601 format)
    - Device fingerprint
-8. Click "Save & Export" to download encrypted `.esig` file
-9. **IMPORTANT**: Save your Sign-ID - it's required to decrypt the signature and is not stored in the file
+9. Click "Save & Export" to download encrypted `.esig` file
+10. **IMPORTANT**: Save both your Sign-ID and passphrase - both are required to decrypt the signature
 
 ### Decrypting a Signature
 
 1. Open `decrypt.html`
 2. Upload the `.esig` file
-3. **Enter the Sign-ID** (required - acts as decryption key)
-4. Click "Decrypt & Verify"
-5. View signature details including:
+3. **Enter the Sign-ID** (required - acts as salt for key derivation)
+4. **Enter the passphrase** used during signing
+5. Click "Decrypt & Verify"
+6. View signature details including:
    - Signer identity information
    - Signature image
    - Document integrity verification (if document was attached)
    - Legal compliance information
-6. Download the signature image or attached document
+7. Download the signature image or attached document
 
-**Note**: Without the correct Sign-ID, the signature cannot be decrypted.
+**Note**: Without both the correct Sign-ID and passphrase, the signature cannot be decrypted. Even someone with access to the source code cannot decrypt signatures without these credentials.
 
 ## 🌐 GitHub Pages
 
@@ -98,13 +104,25 @@ E-Signature can be installed as a Progressive Web App on your mobile device or d
 - `decrypt.html` - Signature decryption and verification page
 
 ### Security
-- All encryption/decryption happens client-side using JavaScript
-- Data is encrypted using XOR cipher with a master key combined with the Sign-ID
-- Sign-ID is **not stored in plaintext** in the file - it acts as the decryption key
-- Only the person who signed knows the Sign-ID
+- **Zero-Knowledge Architecture**: No hardcoded master keys in source code - encryption keys are derived from user passphrases
+- All encryption/decryption happens client-side using JavaScript Web Crypto API
+- **AES-256-GCM encryption** with PBKDF2 key derivation (100,000 iterations)
+- User passphrase + Sign-ID = encryption key (passphrase is never stored)
+- Sign-ID acts as a cryptographic salt for key derivation
+- **Even source code owners cannot decrypt signatures** without the user's passphrase and Sign-ID
 - No data transmission to external servers
 - **SHA-256 hashing** ensures signature and document integrity
 - **Timestamp in ISO 8601 format** for precise time recording
+- Random IV (initialization vector) for each encryption ensures uniqueness
+
+### Encryption Details
+**Version 3.0 (Enhanced Security)**:
+- **Algorithm**: AES-256-GCM (authenticated encryption)
+- **Key Derivation**: PBKDF2 with SHA-256, 100,000 iterations
+- **Salt**: Sign-ID (unique per signature)
+- **Key Size**: 256 bits
+- **Security Model**: Zero-knowledge - only the user with passphrase + Sign-ID can decrypt
+- **Backward Compatibility**: Legacy v1.0 and v2.0 formats are no longer supported due to security concerns
 
 ### Taiwan Legal Compliance (電子簽章法)
 This application complies with Taiwan's Electronic Signatures Act requirements:
@@ -121,12 +139,12 @@ legal validity may vary depending on the specific use case and acceptance by rel
 documents, consult with a legal professional.
 
 ### File Format (.esig)
-Version 2.0 (Taiwan compliant):
+Version 3.0 (Enhanced Security):
 ```json
 {
-  "version": "2.0",
+  "version": "3.0",
   "jurisdiction": "TW",
-  "data": "base64_encrypted_data"
+  "data": "base64_encrypted_data_with_IV"
 }
 ```
 
@@ -138,6 +156,8 @@ Encrypted data includes:
 - Device ID and Sign-ID
 - Legal consent flag
 - Compliance metadata
+
+**Note**: The encrypted data is protected by AES-256-GCM encryption using a key derived from the user's passphrase and Sign-ID. Without both, decryption is impossible.
 
 ## 🛠️ Local Development
 

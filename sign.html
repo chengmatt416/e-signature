@@ -423,6 +423,32 @@
             </div>
         </div>
 
+        <!-- Encryption Passphrase Section -->
+        <div class="input-section" style="background: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
+            <h3 style="color: #1565c0; margin-bottom: 10px;" data-en="🔒 Encryption Passphrase (Required)" data-zh="🔒 加密密碼（必填）">🔒 Encryption Passphrase (Required)</h3>
+            <p style="color: #1976d2; font-size: 0.9em; line-height: 1.6; margin-bottom: 15px;" 
+               data-en="Set a strong passphrase to encrypt your signature. This passphrase will be required to decrypt the signature later. Keep it secure and memorable!" 
+               data-zh="設定一個強密碼來加密您的簽章。稍後解密簽章時需要此密碼。請務必保持安全且容易記憶！">
+                Set a strong passphrase to encrypt your signature. This passphrase will be required to decrypt the signature later. Keep it secure and memorable!
+            </p>
+            <div style="margin-bottom: 15px;">
+                <label for="encryptionPassphrase" data-en="Passphrase *:" data-zh="密碼 *:">Passphrase *:</label>
+                <input type="password" id="encryptionPassphrase" data-placeholder-en="Enter a strong passphrase (min 8 characters)" data-placeholder-zh="輸入強密碼（至少8個字元）" placeholder="Enter a strong passphrase (min 8 characters)" required minlength="8">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="confirmPassphrase" data-en="Confirm Passphrase *:" data-zh="確認密碼 *:">Confirm Passphrase *:</label>
+                <input type="password" id="confirmPassphrase" data-placeholder-en="Re-enter your passphrase" data-placeholder-zh="重新輸入您的密碼" placeholder="Re-enter your passphrase" required minlength="8">
+            </div>
+            <div style="display: flex; align-items: center;">
+                <input type="checkbox" id="showPassphrase" style="width: auto; margin-right: 10px; cursor: pointer;" onchange="togglePassphraseVisibility()">
+                <label for="showPassphrase" style="color: #1976d2; cursor: pointer; margin: 0; font-size: 0.9em;" 
+                       data-en="Show passphrases" 
+                       data-zh="顯示密碼">
+                    Show passphrases
+                </label>
+            </div>
+        </div>
+
         <!-- Legal Consent Section -->
         <div class="info-section" style="background: #fff3cd; border-left: 4px solid #ffc107;">
             <h3 style="color: #856404; margin-bottom: 10px;" data-en="⚖️ Legal Notice" data-zh="⚖️ 法律聲明">⚖️ Legal Notice</h3>
@@ -489,7 +515,6 @@
 
     <script>
         // Configuration
-        const MASTER_KEY = 'e-signature-master-key-2024-secure-v1'; // Master encryption key
         const STORAGE_KEY = 'esig-activation-codes';
 
         let activationCodeValid = false;
@@ -634,6 +659,82 @@
         canvas.addEventListener('touchstart', startDrawing);
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
+
+        // Toggle passphrase visibility
+        function togglePassphraseVisibility() {
+            const passphraseInput = document.getElementById('encryptionPassphrase');
+            const confirmInput = document.getElementById('confirmPassphrase');
+            const showCheckbox = document.getElementById('showPassphrase');
+            
+            if (showCheckbox.checked) {
+                passphraseInput.type = 'text';
+                confirmInput.type = 'text';
+            } else {
+                passphraseInput.type = 'password';
+                confirmInput.type = 'password';
+            }
+        }
+
+        // Derive encryption key from passphrase using PBKDF2
+        async function deriveKey(passphrase, salt) {
+            const encoder = new TextEncoder();
+            const passphraseKey = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(passphrase),
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            const derivedKey = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: encoder.encode(salt),
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                passphraseKey,
+                { name: 'AES-GCM', length: 256 },
+                true,
+                ['encrypt', 'decrypt']
+            );
+            
+            return derivedKey;
+        }
+
+        // Encrypt data using AES-GCM with derived key
+        async function encryptData(data, passphrase, signId) {
+            const encoder = new TextEncoder();
+            const jsonStr = JSON.stringify(data);
+            
+            // Use signId as salt for key derivation
+            const key = await deriveKey(passphrase, signId);
+            
+            // Generate a random IV (initialization vector)
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            
+            // Encrypt the data
+            const encryptedData = await crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                key,
+                encoder.encode(jsonStr)
+            );
+            
+            // Combine IV and encrypted data
+            const combined = new Uint8Array(iv.length + encryptedData.byteLength);
+            combined.set(iv, 0);
+            combined.set(new Uint8Array(encryptedData), iv.length);
+            
+            // Convert to base64
+            let binary = '';
+            for (let i = 0; i < combined.length; i++) {
+                binary += String.fromCharCode(combined[i]);
+            }
+            return btoa(binary);
+        }
 
         // Document file upload handling
         const documentFileInput = document.getElementById('documentFileInput');
@@ -845,23 +946,6 @@
             showAlert('signatureCleared', 'success');
         }
 
-        // Simple encryption function using XOR with key
-        function encryptData(data, key) {
-            const jsonStr = JSON.stringify(data);
-            let encrypted = '';
-            for (let i = 0; i < jsonStr.length; i++) {
-                const charCode = jsonStr.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-                encrypted += String.fromCharCode(charCode);
-            }
-            // Convert to UTF-8 bytes then base64 to handle all characters
-            const utf8Bytes = new TextEncoder().encode(encrypted);
-            let binary = '';
-            for (let i = 0; i < utf8Bytes.length; i++) {
-                binary += String.fromCharCode(utf8Bytes[i]);
-            }
-            return btoa(binary);
-        }
-
         // Save and export signature
         async function saveSignature() {
             if (!activationCodeValid) {
@@ -886,6 +970,20 @@
 
             if (!legalConsent) {
                 showAlert('agreeTerms', 'error');
+                return;
+            }
+
+            // Validate passphrase
+            const passphrase = document.getElementById('encryptionPassphrase').value;
+            const confirmPassphrase = document.getElementById('confirmPassphrase').value;
+
+            if (!passphrase || passphrase.length < 8) {
+                showAlert(messages.passphraseRequired?.[currentLang] || 'Passphrase must be at least 8 characters long', 'error');
+                return;
+            }
+
+            if (passphrase !== confirmPassphrase) {
+                showAlert(messages.passphraseMismatch?.[currentLang] || 'Passphrases do not match', 'error');
                 return;
             }
 
@@ -927,13 +1025,12 @@
                     signatureData.documentHash = await sha256(uploadedDocument);
                 }
 
-                // Encrypt data using Sign ID as part of the key
-                const encryptionKey = MASTER_KEY + signId;
-                const encryptedData = encryptData(signatureData, encryptionKey);
+                // Encrypt data using passphrase and Sign ID
+                const encryptedData = await encryptData(signatureData, passphrase, signId);
 
                 // Create file content (signId is removed from plaintext, only in encrypted data)
                 const fileContent = {
-                    version: '2.0',
+                    version: '3.0', // Updated version for enhanced encryption
                     jurisdiction: 'TW',
                     data: encryptedData
                 };
@@ -971,6 +1068,8 @@
             noSignature: { en: 'Please draw your signature first', zh: '請先繪製您的簽名' },
             fillRequired: { en: 'Please fill in all required fields (Full Name and National ID/Passport)', zh: '請填寫所有必填欄位（姓名和身分證字號/護照號碼）' },
             agreeTerms: { en: 'Please agree to the legal notice', zh: '請同意法律聲明' },
+            passphraseRequired: { en: 'Passphrase must be at least 8 characters long', zh: '密碼必須至少 8 個字元' },
+            passphraseMismatch: { en: 'Passphrases do not match', zh: '密碼不符合' },
             signatureSaved: { en: 'Signature saved successfully! Keep your Sign ID safe: ', zh: '簽章已成功儲存！請妥善保管您的簽章編號：' },
             saveError: { en: 'Error saving signature: ', zh: '儲存簽章時發生錯誤：' }
         };
@@ -1003,7 +1102,7 @@
         function applyLanguage() {
             const elements = document.querySelectorAll('[data-en][data-zh]');
             elements.forEach(el => {
-                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel')) {
+                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'email' || el.type === 'tel' || el.type === 'password')) {
                     // For input placeholders
                     if (el.hasAttribute('data-placeholder-en') && el.hasAttribute('data-placeholder-zh')) {
                         el.placeholder = currentLang === 'en' ? el.getAttribute('data-placeholder-en') : el.getAttribute('data-placeholder-zh');
