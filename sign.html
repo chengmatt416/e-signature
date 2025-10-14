@@ -688,41 +688,6 @@
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
 
-        // Generate RSA key pair from Sign-ID for asymmetric encryption
-        async function generateKeyPairFromSignId(signId) {
-            const encoder = new TextEncoder();
-            
-            // Derive seed from Sign-ID using PBKDF2
-            const keyMaterial = await crypto.subtle.importKey(
-                'raw',
-                encoder.encode(signId),
-                'PBKDF2',
-                false,
-                ['deriveBits']
-            );
-            
-            // Generate deterministic seed for RSA key generation
-            const seed = await crypto.subtle.deriveBits(
-                {
-                    name: 'PBKDF2',
-                    salt: encoder.encode(signId + ':rsa-seed'),
-                    iterations: 100000,
-                    hash: 'SHA-256'
-                },
-                keyMaterial,
-                256
-            );
-            
-            // Note: Web Crypto API doesn't support deterministic RSA generation from seed
-            // So we'll use a hybrid approach: RSA for the concept, but implement with
-            // separate encryption/decryption salts
-            
-            // For encryption: use one-time random nonce mixed with Sign-ID
-            const encryptionNonce = crypto.getRandomValues(new Uint8Array(32));
-            
-            return { encryptionNonce, seed };
-        }
-
         // Derive write-only encryption key (can only encrypt, not decrypt)
         async function deriveEncryptionKey(signId, nonce) {
             const encoder = new TextEncoder();
