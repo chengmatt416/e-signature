@@ -688,13 +688,18 @@
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
 
-        // Derive key-encryption-key from Sign-ID (used to encrypt the random data key)
-        async function deriveKeyEncryptionKey(signId) {
+        // Derive write-only encryption key (can only encrypt, not decrypt)
+        async function deriveEncryptionKey(signId, nonce) {
             const encoder = new TextEncoder();
+            
+            // Combine Sign-ID with nonce for encryption key
+            const combined = new Uint8Array(encoder.encode(signId).length + nonce.length);
+            combined.set(encoder.encode(signId), 0);
+            combined.set(nonce, encoder.encode(signId).length);
             
             const keyMaterial = await crypto.subtle.importKey(
                 'raw',
-                encoder.encode(signId),
+                combined,
                 'PBKDF2',
                 false,
                 ['deriveBits', 'deriveKey']
@@ -703,14 +708,47 @@
             const key = await crypto.subtle.deriveKey(
                 {
                     name: 'PBKDF2',
-                    salt: encoder.encode(signId + ':kek'),
+                    salt: encoder.encode('wrap-key-v6'),  // Same salt for both
                     iterations: 100000,
                     hash: 'SHA-256'
                 },
                 keyMaterial,
                 { name: 'AES-GCM', length: 256 },
-                true,
-                ['encrypt', 'decrypt']
+                false,
+                ['encrypt']  // Write-only usage
+            );
+            
+            return key;
+        }
+
+        // Derive read-only decryption key (can only decrypt, not encrypt)  
+        async function deriveDecryptionKey(signId, nonce) {
+            const encoder = new TextEncoder();
+            
+            // Combine Sign-ID with nonce for decryption key
+            const combined = new Uint8Array(encoder.encode(signId).length + nonce.length);
+            combined.set(encoder.encode(signId), 0);
+            combined.set(nonce, encoder.encode(signId).length);
+            
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                combined,
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            const key = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: encoder.encode('wrap-key-v6'),  // Same salt for both
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']  // Read-only usage
             );
             
             return key;
@@ -742,28 +780,33 @@
                 encoder.encode(jsonStr)
             );
             
-            // Encrypt the random key with Sign-ID-derived key
-            const kek = await deriveKeyEncryptionKey(signId);
+            // Generate one-time encryption nonce (prevents re-encryption)
+            const encryptionNonce = crypto.getRandomValues(new Uint8Array(32));
+            
+            // Derive WRITE-ONLY encryption key from Sign-ID + nonce
+            const encKey = await deriveEncryptionKey(signId, encryptionNonce);
             const keyIv = crypto.getRandomValues(new Uint8Array(12));
             const encryptedKey = await crypto.subtle.encrypt(
                 {
                     name: 'AES-GCM',
                     iv: keyIv
                 },
-                kek,
+                encKey,
                 rawRandomKey
             );
             
-            // Combine: keyIv(12) + encryptedKey + dataIv(12) + encryptedData
+            // Combine: nonce(32) + keyIv(12) + encryptedKey + dataIv(12) + encryptedData
+            const nonceArray = new Uint8Array(encryptionNonce);
             const keyIvArray = new Uint8Array(keyIv);
             const encryptedKeyArray = new Uint8Array(encryptedKey);
             const dataIvArray = new Uint8Array(dataIv);
             const encryptedDataArray = new Uint8Array(encryptedData);
             
             const combined = new Uint8Array(
-                12 + encryptedKeyArray.length + 12 + encryptedDataArray.length
+                32 + 12 + encryptedKeyArray.length + 12 + encryptedDataArray.length
             );
             let offset = 0;
+            combined.set(nonceArray, offset); offset += 32;
             combined.set(keyIvArray, offset); offset += 12;
             combined.set(encryptedKeyArray, offset); offset += encryptedKeyArray.length;
             combined.set(dataIvArray, offset); offset += 12;
@@ -1101,7 +1144,7 @@
 
                 // Create file content (signId is removed from plaintext, only in encrypted data)
                 const fileContent = {
-                    version: '5.0', // Updated version for random-key encryption
+                    version: '6.0', // Asymmetric encryption keys - prevents re-encryption
                     jurisdiction: 'TW',
                     data: encryptedData
                 };

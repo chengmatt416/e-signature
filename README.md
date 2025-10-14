@@ -52,7 +52,7 @@ A secure, client-side digital signature application that runs entirely in your b
    - Legal compliance information
 6. Download the signature image or attached document
 
-**Note**: Only the Sign-ID is needed to decrypt. The encryption process uses additional hidden entropy (device ID + timestamp) that makes it impossible to re-encrypt even with the decryption key.
+**Note**: Only the Sign-ID is needed to decrypt. The encryption process uses a one-time random nonce and asymmetric key derivation (write-only vs read-only keys) that makes it impossible to re-encrypt even with the Sign-ID and decrypted content.
 
 ## 🌐 GitHub Pages
 
@@ -102,24 +102,31 @@ E-Signature can be installed as a Progressive Web App on your mobile device or d
 ### Security
 - **Random-Key Encryption**: Each signature uses a completely random 256-bit encryption key
 - **No Relationship with Sign-ID**: Encryption key is randomly generated, changes every time
+- **One-Time Encryption Nonce**: Each encryption uses a unique random nonce that prevents re-encryption
+- **Asymmetric Key Derivation**: Encryption uses write-only keys, decryption uses read-only keys
 - All encryption/decryption happens client-side using JavaScript Web Crypto API
 - **AES-256-GCM encryption** with PBKDF2 key derivation (100,000 iterations)
-- **Key Wrapping**: Random encryption key is encrypted with Sign-ID-derived key
-- **Decryption with Sign-ID**: Sign-ID decrypts the wrapped key, which then decrypts the data
+- **Key Wrapping**: Random encryption key is wrapped with a one-time encryption key
+- **Decryption with Sign-ID**: Sign-ID + stored nonce derives the decryption key
+- **Re-encryption Prevention**: Encryption keys are write-only and include random nonce
 - No data transmission to external servers
 - **SHA-256 hashing** ensures signature and document integrity
 - **Timestamp in ISO 8601 format** for precise time recording
 - Random IV (initialization vector) for each encryption ensures uniqueness
 
 ### Encryption Details
-**Version 5.0 (Random-Key Encryption)**:
+**Version 6.0 (One-Time Encryption with Asymmetric Key Usage)**:
 - **Algorithm**: AES-256-GCM (authenticated encryption)
 - **Data Encryption Key**: Completely random, generated fresh for each signature
 - **Key Wrapping**: PBKDF2 with SHA-256, 100,000 iterations
-- **Key Encryption Key**: Derived from Sign-ID only
-- **Key Size**: 256 bits for both data and key-encryption keys
-- **Security Model**: Random encryption key has no relationship with Sign-ID, changes every time
-- **Backward Compatibility**: Legacy v1.0, v2.0, v3.0, and v4.0 formats are no longer supported
+- **Encryption Nonce**: 32-byte random nonce generated once during encryption
+- **Key Derivation**: Sign-ID + nonce combined with salt 'wrap-key-v6'
+- **Write-Only Key**: Derived with 'encrypt' usage only (cannot decrypt)
+- **Read-Only Key**: Derived with 'decrypt' usage only (cannot encrypt)
+- **Key Size**: 256 bits for all keys
+- **Security Model**: One-time nonce + usage-restricted keys prevent re-encryption
+- **Re-encryption Prevention**: Decryption key has no 'encrypt' capability (enforced by Web Crypto API)
+- **Backward Compatibility**: Can still decrypt v5.0 files (legacy format)
 
 ### Taiwan Legal Compliance (電子簽章法)
 This application complies with Taiwan's Electronic Signatures Act requirements:
@@ -136,22 +143,23 @@ legal validity may vary depending on the specific use case and acceptance by rel
 documents, consult with a legal professional.
 
 ### File Format (.esig)
-Version 5.0 (Random-Key Encryption):
+Version 6.0 (One-Time Encryption):
 ```json
 {
-  "version": "5.0",
+  "version": "6.0",
   "jurisdiction": "TW",
-  "data": "base64_encrypted_data_with_wrapped_key"
+  "data": "base64_encrypted_data_with_nonce_and_wrapped_key"
 }
 ```
 
 Encrypted data structure:
+- Encryption Nonce (32 bytes) - random one-time nonce for key derivation
 - Key IV (12 bytes) - for wrapping the random key
-- Wrapped Key (48 bytes) - random encryption key, encrypted with Sign-ID-derived key
+- Wrapped Key (48 bytes) - random encryption key, encrypted with write-only KEK
 - Data IV (12 bytes) - for encrypting the actual data
 - Encrypted Data (variable) - signature data encrypted with the random key
 
-**Note**: The random encryption key is different for every signature and has no relationship with the Sign-ID. The Sign-ID is only used to decrypt the wrapped key.
+**Note**: The encryption nonce is generated once and stored with the encrypted data. The decryption key (derived from Sign-ID + nonce) has only 'decrypt' usage, making re-encryption impossible even if you decrypt the data successfully.
 
 ## 🛠️ Local Development
 
