@@ -115,16 +115,17 @@ E-Signature can be installed as a Progressive Web App on your mobile device or d
 - Random IV (initialization vector) for each encryption ensures uniqueness
 
 ### Encryption Details
-**Version 6.0 (One-Time Encryption with Asymmetric Keys)**:
+**Version 6.0 (One-Time Encryption with Asymmetric Key Usage)**:
 - **Algorithm**: AES-256-GCM (authenticated encryption)
 - **Data Encryption Key**: Completely random, generated fresh for each signature
 - **Key Wrapping**: PBKDF2 with SHA-256, 100,000 iterations
 - **Encryption Nonce**: 32-byte random nonce generated once during encryption
-- **Encryption Key**: Derived from Sign-ID + nonce with 'encryption-only-key' salt (write-only)
-- **Decryption Key**: Derived from Sign-ID + nonce with 'decryption-only-key' salt (read-only)
+- **Key Derivation**: Sign-ID + nonce combined with salt 'wrap-key-v6'
+- **Write-Only Key**: Derived with 'encrypt' usage only (cannot decrypt)
+- **Read-Only Key**: Derived with 'decrypt' usage only (cannot encrypt)
 - **Key Size**: 256 bits for all keys
-- **Security Model**: Random nonce prevents re-encryption; write-only and read-only keys are cryptographically separate
-- **Re-encryption Prevention**: Cannot re-encrypt because encryption key derivation requires different salt than decryption
+- **Security Model**: One-time nonce + usage-restricted keys prevent re-encryption
+- **Re-encryption Prevention**: Decryption key has no 'encrypt' capability (enforced by Web Crypto API)
 - **Backward Compatibility**: Can still decrypt v5.0 files (legacy format)
 
 ### Taiwan Legal Compliance (電子簽章法)
@@ -158,7 +159,7 @@ Encrypted data structure:
 - Data IV (12 bytes) - for encrypting the actual data
 - Encrypted Data (variable) - signature data encrypted with the random key
 
-**Note**: The encryption nonce is generated once and stored with the encrypted data. The encryption key (derived from Sign-ID + nonce) is write-only and cryptographically different from the decryption key, making re-encryption impossible even with the Sign-ID.
+**Note**: The encryption nonce is generated once and stored with the encrypted data. The decryption key (derived from Sign-ID + nonce) has only 'decrypt' usage, making re-encryption impossible even if you decrypt the data successfully.
 
 ## 🛠️ Local Development
 

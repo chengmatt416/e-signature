@@ -743,14 +743,14 @@
             const key = await crypto.subtle.deriveKey(
                 {
                     name: 'PBKDF2',
-                    salt: encoder.encode('encryption-only-key'),
+                    salt: encoder.encode('wrap-key-v6'),  // Same salt for both
                     iterations: 100000,
                     hash: 'SHA-256'
                 },
                 keyMaterial,
                 { name: 'AES-GCM', length: 256 },
                 false,
-                ['encrypt']
+                ['encrypt']  // Write-only usage
             );
             
             return key;
@@ -776,14 +776,14 @@
             const key = await crypto.subtle.deriveKey(
                 {
                     name: 'PBKDF2',
-                    salt: encoder.encode('decryption-only-key'),
+                    salt: encoder.encode('wrap-key-v6'),  // Same salt for both
                     iterations: 100000,
                     hash: 'SHA-256'
                 },
                 keyMaterial,
                 { name: 'AES-GCM', length: 256 },
                 false,
-                ['decrypt']
+                ['decrypt']  // Read-only usage
             );
             
             return key;
