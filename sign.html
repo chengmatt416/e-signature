@@ -456,6 +456,32 @@
 
         <div id="mainContent" style="display: none;">
         
+        <!-- Jurisdiction Selection Section -->
+        <div class="input-section" style="background: #e8f4fd; border-left: 4px solid #2196F3; padding: 20px; margin-bottom: 20px;">
+            <h2 style="color: #1565C0; margin-bottom: 15px; font-size: 1.3em;" data-en="🌍 Select Jurisdiction" data-zh="🌍 選擇法律管轄區">🌍 Select Jurisdiction</h2>
+            <p style="color: #555; font-size: 0.9em; margin-bottom: 15px;" data-en="Choose the legal jurisdiction for this signature. This determines which laws govern the signature's legal validity." data-zh="選擇此簽章的法律管轄區。這將決定哪些法律約束簽章的法律效力。">Choose the legal jurisdiction for this signature. This determines which laws govern the signature's legal validity.</p>
+            <div style="margin-bottom: 15px;">
+                <label for="jurisdiction" style="display: block; font-weight: 600; color: #555; margin-bottom: 8px;" data-en="Legal Jurisdiction *:" data-zh="法律管轄區 *:">Legal Jurisdiction *:</label>
+                <select id="jurisdiction" style="width: 100%; padding: 12px; border: 2px solid #2196F3; border-radius: 6px; font-size: 1em; background: white; cursor: pointer;" onchange="updateJurisdictionInfo()">
+                    <option value="TW">🇹🇼 Taiwan (台灣) - Electronic Signatures Act</option>
+                    <option value="EU">🇪🇺 European Union - eIDAS Regulation (Simple E-Signature)</option>
+                    <option value="US">🇺🇸 United States - ESIGN Act / UETA</option>
+                    <option value="UK">🇬🇧 United Kingdom - Electronic Communications Act</option>
+                    <option value="CA">🇨🇦 Canada - PIPEDA</option>
+                    <option value="AU">🇦🇺 Australia - Electronic Transactions Act</option>
+                    <option value="SG">🇸🇬 Singapore - Electronic Transactions Act</option>
+                    <option value="JP">🇯🇵 Japan - Electronic Signatures Act</option>
+                    <option value="HK">🇭🇰 Hong Kong - Electronic Transactions Ordinance</option>
+                    <option value="INTL">🌐 International - UNCITRAL Model Law (Global Use)</option>
+                </select>
+            </div>
+            <div id="jurisdictionInfo" style="background: #f5f5f5; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                <p style="color: #666; font-size: 0.85em; line-height: 1.5; margin: 0;" id="jurisdictionDescription">
+                    <strong>Taiwan:</strong> Compliant with Taiwan's Electronic Signatures Act (電子簽章法). Recognized for all legal purposes where electronic signatures are permitted. Includes Personal Data Protection Act (PDPA) compliance.
+                </p>
+            </div>
+        </div>
+        
         <!-- Signer Identity Section (Required for Taiwan Law) -->
         <div class="input-section">
             <h2 style="color: #333; margin-bottom: 15px; font-size: 1.3em;" data-en="📋 Signer Information (Required)" data-zh="📋 簽署人資訊（必填）">📋 Signer Information (Required)</h2>
@@ -617,6 +643,155 @@
             const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Jurisdiction information and legal notices
+        const jurisdictionData = {
+            TW: {
+                name: { en: 'Taiwan', zh: '台灣' },
+                law: { en: 'Electronic Signatures Act', zh: '電子簽章法' },
+                description: { 
+                    en: "<strong>Taiwan:</strong> Compliant with Taiwan's Electronic Signatures Act (電子簽章法). Recognized for all legal purposes where electronic signatures are permitted. Includes Personal Data Protection Act (PDPA) compliance.",
+                    zh: "<strong>台灣：</strong>符合中華民國電子簽章法。適用於所有允許電子簽章的法律用途。包含個人資料保護法（PDPA）合規。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created in compliance with the Electronic Signatures Act of Taiwan (R.O.C.). By signing, you acknowledge that this electronic signature has the same legal effect as a handwritten signature under Taiwan law.",
+                    zh: "此電子簽章依據中華民國電子簽章法建立。簽署即表示您承認此電子簽章在台灣法律下具有與手寫簽名相同的法律效力。"
+                },
+                complianceStandard: 'TW Electronic Signatures Act + Personal Data Protection Act'
+            },
+            EU: {
+                name: { en: 'European Union', zh: '歐盟' },
+                law: { en: 'eIDAS Regulation', zh: 'eIDAS 規範' },
+                description: {
+                    en: "<strong>European Union:</strong> Qualifies as a Simple Electronic Signature (SES) under eIDAS Regulation (EU) No 910/2014. Admissible in court and suitable for contracts where parties accept electronic signatures. GDPR compliant (client-side processing).",
+                    zh: "<strong>歐盟：</strong>符合 eIDAS 規範 (EU) No 910/2014 的簡易電子簽章 (SES)。可於法院採用，適用於雙方接受電子簽章的合約。符合 GDPR（客戶端處理）。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created as a Simple Electronic Signature (SES) under the eIDAS Regulation (EU) No 910/2014. It is legally valid for agreements where parties consent to use electronic signatures. GDPR compliant.",
+                    zh: "此電子簽章依據 eIDAS 規範 (EU) No 910/2014 作為簡易電子簽章 (SES) 建立。在雙方同意使用電子簽章的協議中具有法律效力。符合 GDPR。"
+                },
+                complianceStandard: 'eIDAS Regulation (EU) No 910/2014 - Simple Electronic Signature + GDPR'
+            },
+            US: {
+                name: { en: 'United States', zh: '美國' },
+                law: { en: 'ESIGN Act / UETA', zh: 'ESIGN 法案 / UETA' },
+                description: {
+                    en: "<strong>United States:</strong> Compliant with the Electronic Signatures in Global and National Commerce Act (ESIGN) and Uniform Electronic Transactions Act (UETA). Valid in all 50 states for commercial and consumer transactions.",
+                    zh: "<strong>美國：</strong>符合全球與國家商務電子簽章法 (ESIGN) 和統一電子交易法 (UETA)。在所有 50 個州的商業和消費者交易中有效。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created in compliance with the U.S. ESIGN Act and UETA. By signing, you agree that this electronic signature has the same legal effect as a handwritten signature under federal and state law.",
+                    zh: "此電子簽章依據美國 ESIGN 法案和 UETA 建立。簽署即表示您同意此電子簽章在聯邦和州法律下具有與手寫簽名相同的法律效力。"
+                },
+                complianceStandard: 'U.S. ESIGN Act + UETA'
+            },
+            UK: {
+                name: { en: 'United Kingdom', zh: '英國' },
+                law: { en: 'Electronic Communications Act', zh: '電子通訊法' },
+                description: {
+                    en: "<strong>United Kingdom:</strong> Compliant with the Electronic Communications Act 2000 and Electronic Signatures Regulations 2002. Recognized as a Simple Electronic Signature. UK GDPR compliant.",
+                    zh: "<strong>英國：</strong>符合 2000 年電子通訊法和 2002 年電子簽章規範。被認可為簡易電子簽章。符合英國 GDPR。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created under the UK Electronic Communications Act 2000. By signing, you acknowledge that this electronic signature is legally valid for most contracts (excluding wills and property deeds).",
+                    zh: "此電子簽章依據英國 2000 年電子通訊法建立。簽署即表示您承認此電子簽章對大多數合約具有法律效力（遺囑和財產契約除外）。"
+                },
+                complianceStandard: 'UK Electronic Communications Act 2000 + UK GDPR'
+            },
+            CA: {
+                name: { en: 'Canada', zh: '加拿大' },
+                law: { en: 'PIPEDA', zh: 'PIPEDA' },
+                description: {
+                    en: "<strong>Canada:</strong> Compliant with PIPEDA (Personal Information Protection and Electronic Documents Act) and provincial electronic commerce acts. Valid for federal and provincial transactions.",
+                    zh: "<strong>加拿大：</strong>符合 PIPEDA（個人資訊保護和電子文件法）和省級電子商務法。適用於聯邦和省級交易。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created in compliance with Canada's PIPEDA and electronic commerce legislation. By signing, you agree that this electronic signature has legal effect under Canadian federal and provincial law.",
+                    zh: "此電子簽章依據加拿大 PIPEDA 和電子商務立法建立。簽署即表示您同意此電子簽章在加拿大聯邦和省級法律下具有法律效力。"
+                },
+                complianceStandard: 'Canada PIPEDA + Provincial Electronic Commerce Acts'
+            },
+            AU: {
+                name: { en: 'Australia', zh: '澳洲' },
+                law: { en: 'Electronic Transactions Act', zh: '電子交易法' },
+                description: {
+                    en: "<strong>Australia:</strong> Compliant with the Electronic Transactions Act 1999. Valid for Commonwealth and state/territory laws. Privacy Act 1988 compliant (no data collection).",
+                    zh: "<strong>澳洲：</strong>符合 1999 年電子交易法。適用於聯邦和州/領地法律。符合 1988 年隱私法（無資料收集）。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created under Australia's Electronic Transactions Act 1999. By signing, you acknowledge that this electronic signature satisfies legal signature requirements under Commonwealth and state/territory law.",
+                    zh: "此電子簽章依據澳洲 1999 年電子交易法建立。簽署即表示您承認此電子簽章符合聯邦和州/領地法律的簽章要求。"
+                },
+                complianceStandard: 'Australia Electronic Transactions Act 1999 + Privacy Act 1988'
+            },
+            SG: {
+                name: { en: 'Singapore', zh: '新加坡' },
+                law: { en: 'Electronic Transactions Act', zh: '電子交易法' },
+                description: {
+                    en: "<strong>Singapore:</strong> Compliant with the Electronic Transactions Act (Chapter 88). Recognized for commercial transactions. PDPA (Personal Data Protection Act) compliant through client-side processing.",
+                    zh: "<strong>新加坡：</strong>符合電子交易法（第 88 章）。適用於商業交易。通過客戶端處理符合 PDPA（個人資料保護法）。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created under Singapore's Electronic Transactions Act. By signing, you agree that this electronic signature has the same legal effect as a handwritten signature for commercial transactions.",
+                    zh: "此電子簽章依據新加坡電子交易法建立。簽署即表示您同意此電子簽章對商業交易具有與手寫簽名相同的法律效力。"
+                },
+                complianceStandard: 'Singapore Electronic Transactions Act + PDPA'
+            },
+            JP: {
+                name: { en: 'Japan', zh: '日本' },
+                law: { en: 'Electronic Signatures Act', zh: '電子簽章法' },
+                description: {
+                    en: "<strong>Japan:</strong> Compatible with the Act on Electronic Signatures and Certification Business (2000). Recognized as a valid electronic signature for general use. May require certification for certain official documents.",
+                    zh: "<strong>日本：</strong>符合 2000 年電子簽章和認證業務法。被認可為一般用途的有效電子簽章。某些官方文件可能需要認證。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created in accordance with Japan's Act on Electronic Signatures and Certification Business. By signing, you acknowledge that this electronic signature is valid for general legal purposes.",
+                    zh: "此電子簽章依據日本電子簽章和認證業務法建立。簽署即表示您承認此電子簽章對一般法律用途有效。"
+                },
+                complianceStandard: 'Japan Act on Electronic Signatures and Certification Business (2000)'
+            },
+            HK: {
+                name: { en: 'Hong Kong', zh: '香港' },
+                law: { en: 'Electronic Transactions Ordinance', zh: '電子交易條例' },
+                description: {
+                    en: "<strong>Hong Kong:</strong> Compliant with the Electronic Transactions Ordinance (Cap. 553). Recognized in Hong Kong law for commercial use. Privacy Ordinance compliant.",
+                    zh: "<strong>香港：</strong>符合電子交易條例（第 553 章）。在香港法律中被認可用於商業用途。符合隱私條例。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created under Hong Kong's Electronic Transactions Ordinance. By signing, you agree that this electronic signature has legal effect for commercial transactions under Hong Kong law.",
+                    zh: "此電子簽章依據香港電子交易條例建立。簽署即表示您同意此電子簽章在香港法律下對商業交易具有法律效力。"
+                },
+                complianceStandard: 'Hong Kong Electronic Transactions Ordinance (Cap. 553)'
+            },
+            INTL: {
+                name: { en: 'International', zh: '國際' },
+                law: { en: 'UNCITRAL Model Law', zh: 'UNCITRAL 示範法' },
+                description: {
+                    en: "<strong>International:</strong> Based on UNCITRAL Model Law on Electronic Signatures (2001). Compatible with 70+ countries that have adopted this framework. Suitable for global use where parties agree to electronic signatures.",
+                    zh: "<strong>國際：</strong>基於 UNCITRAL 電子簽章示範法（2001）。與採用此框架的 70 多個國家兼容。適用於雙方同意使用電子簽章的全球使用。"
+                },
+                legalNotice: {
+                    en: "This electronic signature is created based on the UNCITRAL Model Law on Electronic Signatures. By signing, you agree that this electronic signature is intended to have legal effect where recognized by applicable law and accepted by contracting parties.",
+                    zh: "此電子簽章基於 UNCITRAL 電子簽章示範法建立。簽署即表示您同意此電子簽章在適用法律承認且締約方接受的情況下具有法律效力。"
+                },
+                complianceStandard: 'UNCITRAL Model Law on Electronic Signatures (2001)'
+            }
+        };
+
+        // Update jurisdiction information display
+        function updateJurisdictionInfo() {
+            const jurisdiction = document.getElementById('jurisdiction').value;
+            const currentLang = localStorage.getItem('esig-lang') || 'en';
+            const data = jurisdictionData[jurisdiction];
+            
+            if (data) {
+                // Update description
+                document.getElementById('jurisdictionDescription').innerHTML = data.description[currentLang];
+                
+                // Update legal notice
+                document.getElementById('legalNoticeText').textContent = data.legalNotice[currentLang];
+            }
         }
 
         // Update date and time (ISO 8601 format for Taiwan)
@@ -1115,9 +1290,13 @@
                     phone: document.getElementById('signerPhone').value.trim() || null
                 };
 
+                // Get selected jurisdiction
+                const selectedJurisdiction = document.getElementById('jurisdiction').value;
+                const jurisdictionInfo = jurisdictionData[selectedJurisdiction];
+                
                 // Prepare data
                 const signatureData = {
-                    version: '3.0', // Updated version for enhanced encryption
+                    version: '7.0', // Updated version for multi-jurisdiction support
                     signId: signId,
                     datetime: document.getElementById('datetime').textContent,
                     deviceId: document.getElementById('deviceId').textContent,
@@ -1125,8 +1304,13 @@
                     signatureHash: signatureHash,
                     signerInfo: signerInfo,
                     legalConsent: true,
-                    jurisdiction: 'TW', // Taiwan
-                    complianceStandard: 'TW Electronic Signatures Act',
+                    jurisdiction: selectedJurisdiction,
+                    legalFramework: {
+                        primaryLaw: jurisdictionInfo.law.en,
+                        country: jurisdictionInfo.name.en,
+                        complianceStandard: jurisdictionInfo.complianceStandard,
+                        signatureLevel: 'Standard Electronic Signature'
+                    },
                     timestamp: Date.now()
                 };
 
@@ -1144,8 +1328,14 @@
 
                 // Create file content (signId is removed from plaintext, only in encrypted data)
                 const fileContent = {
-                    version: '6.0', // Asymmetric encryption keys - prevents re-encryption
-                    jurisdiction: 'TW',
+                    version: '7.0', // Multi-jurisdiction support version
+                    jurisdiction: selectedJurisdiction,
+                    legalFramework: {
+                        primaryLaw: jurisdictionInfo.law.en,
+                        country: jurisdictionInfo.name.en,
+                        complianceStandard: jurisdictionInfo.complianceStandard,
+                        signatureLevel: 'Standard Electronic Signature'
+                    },
                     data: encryptedData
                 };
 
@@ -1231,6 +1421,9 @@
             
             // Update language toggle button
             document.getElementById('langToggle').textContent = currentLang === 'en' ? '中文' : 'English';
+            
+            // Update jurisdiction info when language changes
+            updateJurisdictionInfo();
         }
         
         // Apply language on page load

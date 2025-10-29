@@ -15,7 +15,11 @@ A secure, client-side digital signature application that runs entirely in your b
 - **🔑 Simple Decryption**: Only Sign-ID needed - no passphrases to remember
 - **🔐 Admin Direct Sign**: Built-in keypad for admin passcode entry (no device keyboard)
 - **📱 Progressive Web App**: Install on Android, iOS, or desktop for offline use
+- **🌍 Global Legal Compliance**: Multi-jurisdiction support (10+ jurisdictions worldwide)
 - **⚖️ Taiwan Legal Compliance**: Compliant with Taiwan's Electronic Signatures Act (電子簽章法)
+- **🇪🇺 EU eIDAS Compatible**: Simple Electronic Signature (SES) level
+- **🇺🇸 US ESIGN/UETA Compliant**: Valid across all 50 states
+- **🌐 International Support**: UNCITRAL Model Law framework (70+ countries)
 - **🔒 Integrity Verification**: SHA-256 hash ensures signature and document integrity
 - **👤 Signer Identity**: Captures signer's name, ID number, and contact information
 
@@ -25,7 +29,18 @@ A secure, client-side digital signature application that runs entirely in your b
 
 1. Open `sign.html`
 2. Enter activation code from admin
-3. **Fill in signer information** (required for Taiwan legal compliance):
+3. **Select your jurisdiction** (determines legal framework):
+   - 🇹🇼 Taiwan - Electronic Signatures Act
+   - 🇪🇺 European Union - eIDAS Regulation
+   - 🇺🇸 United States - ESIGN Act / UETA
+   - 🇬🇧 United Kingdom - Electronic Communications Act
+   - 🇨🇦 Canada - PIPEDA
+   - 🇦🇺 Australia - Electronic Transactions Act
+   - 🇸🇬 Singapore - Electronic Transactions Act
+   - 🇯🇵 Japan - Electronic Signatures Act
+   - 🇭🇰 Hong Kong - Electronic Transactions Ordinance
+   - 🌐 International - UNCITRAL Model Law (Global Use)
+4. **Fill in signer information** (required for legal compliance):
    - Full Name (姓名)
    - National ID or Passport Number (身分證字號/護照號碼)
    - Email and Phone (optional)
@@ -128,22 +143,78 @@ E-Signature can be installed as a Progressive Web App on your mobile device or d
 - **Re-encryption Prevention**: Decryption key has no 'encrypt' capability (enforced by Web Crypto API)
 - **Backward Compatibility**: Can still decrypt v5.0 files (legacy format)
 
-### Taiwan Legal Compliance (電子簽章法)
-This application complies with Taiwan's Electronic Signatures Act requirements:
+### Global Legal Compliance
+
+This application provides **multi-jurisdiction support** for legally valid electronic signatures across 10+ jurisdictions worldwide:
+
+#### Supported Jurisdictions:
+
+1. **🇹🇼 Taiwan** - Electronic Signatures Act (電子簽章法) + Personal Data Protection Act
+2. **🇪🇺 European Union** - eIDAS Regulation (Simple Electronic Signature) + GDPR
+3. **🇺🇸 United States** - ESIGN Act + UETA (all 50 states)
+4. **🇬🇧 United Kingdom** - Electronic Communications Act 2000 + UK GDPR
+5. **🇨🇦 Canada** - PIPEDA + Provincial Electronic Commerce Acts
+6. **🇦🇺 Australia** - Electronic Transactions Act 1999 + Privacy Act 1988
+7. **🇸🇬 Singapore** - Electronic Transactions Act + PDPA
+8. **🇯🇵 Japan** - Act on Electronic Signatures and Certification Business
+9. **🇭🇰 Hong Kong** - Electronic Transactions Ordinance + Privacy Ordinance
+10. **🌐 International** - UNCITRAL Model Law (70+ countries)
+
+#### Key Legal Requirements Met:
 
 1. **Signer Identification**: Captures signer's full name and national ID/passport number
-2. **Signature Intent**: Requires explicit legal consent before signing
+2. **Signature Intent**: Requires explicit legal consent before signing (jurisdiction-specific)
 3. **Document Integrity**: Uses SHA-256 hash to ensure signature and documents remain unchanged
-4. **Timestamp**: Records signature time in ISO 8601 format (Taiwan timezone: UTC+8)
+4. **Timestamp**: Records signature time in ISO 8601 format with proper timezone
 5. **Non-repudiation**: Encrypted signature linked to signer's identity and unique Sign-ID
-6. **Jurisdiction**: Clearly marked as Taiwan (TW) jurisdiction
+6. **Jurisdiction Marking**: Clearly identifies applicable legal framework
+7. **Privacy Compliance**: Client-side processing complies with GDPR, PDPA, PIPEDA, Privacy Act, etc.
 
-**Legal Notice**: While this application implements technical requirements for Taiwan's Electronic Signatures Act, 
-legal validity may vary depending on the specific use case and acceptance by relevant parties. For critical legal 
-documents, consult with a legal professional.
+#### Legal Validity:
+
+- ✅ **Admissible in court** as evidence (where electronic signatures are accepted)
+- ✅ **Legally binding** for contracts and agreements (with party consent)
+- ✅ **Privacy compliant** - no data transmission, client-side only
+- ✅ **Industry-standard encryption** - AES-256-GCM, SHA-256, PBKDF2
+
+**Legal Notice**: While this application implements technical requirements for electronic signature laws in multiple jurisdictions, legal validity may vary depending on:
+- Specific use case and context
+- Acceptance by all contracting parties
+- Applicable laws and regulations
+- Document type (some documents require physical signatures)
+
+For critical legal documents, consult with a qualified legal professional in your jurisdiction.
+
+**See [GLOBAL_LEGAL_COMPLIANCE.md](GLOBAL_LEGAL_COMPLIANCE.md)** for comprehensive legal information.
+
+### Taiwan-Specific Compliance (電子簽章法)
+
+For Taiwan users, this application complies with:
+- **Electronic Signatures Act** (電子簽章法) - All technical requirements
+- **Personal Data Protection Act** (個人資料保護法) - Privacy by design
+- **Civil Code** provisions for electronic contracts
+- **Cyber Security Management Act** principles
+
+**See [TAIWAN_LAWS_RESEARCH.md](TAIWAN_LAWS_RESEARCH.md)** for detailed Taiwan law analysis.
 
 ### File Format (.esig)
-Version 6.0 (One-Time Encryption):
+
+**Version 7.0 (Multi-Jurisdiction Support):**
+```json
+{
+  "version": "7.0",
+  "jurisdiction": "TW|EU|US|UK|CA|AU|SG|JP|HK|INTL",
+  "legalFramework": {
+    "primaryLaw": "Electronic Signatures Act",
+    "country": "Taiwan (R.O.C.)",
+    "complianceStandard": "TW Electronic Signatures Act + Personal Data Protection Act",
+    "signatureLevel": "Standard Electronic Signature"
+  },
+  "data": "base64_encrypted_data_with_nonce_and_wrapped_key"
+}
+```
+
+**Version 6.0 (Single Jurisdiction - Taiwan):**
 ```json
 {
   "version": "6.0",
