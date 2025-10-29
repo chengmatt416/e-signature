@@ -1,7 +1,9 @@
 # Taiwan Electronic Signatures Act Compliance Summary
 
 ## Overview
-This document summarizes the changes made to comply with Taiwan's Electronic Signatures Act (中華民國電子簽章法).
+This document summarizes the legal compliance features of the E-Signature application, with primary focus on Taiwan's Electronic Signatures Act (中華民國電子簽章法).
+
+**Note:** This application now supports multiple jurisdictions. See [GLOBAL_LEGAL_COMPLIANCE.md](GLOBAL_LEGAL_COMPLIANCE.md) for comprehensive global legal framework information.
 
 ## Legal Requirements Addressed
 
@@ -49,7 +51,26 @@ This document summarizes the changes made to comply with Taiwan's Electronic Sig
 
 ## Technical Implementation
 
-### File Format (Version 2.0)
+### Multi-Jurisdiction Support (Version 7.0+)
+
+As of version 7.0, the application supports 10+ jurisdictions worldwide. Users can select their jurisdiction when creating signatures, and the appropriate legal framework is applied.
+
+### File Format (Version 7.0)
+```json
+{
+  "version": "7.0",
+  "jurisdiction": "TW|EU|US|UK|CA|AU|SG|JP|HK|INTL",
+  "legalFramework": {
+    "primaryLaw": "Electronic Signatures Act",
+    "country": "Taiwan (R.O.C.)",
+    "complianceStandard": "TW Electronic Signatures Act + Personal Data Protection Act",
+    "signatureLevel": "Standard Electronic Signature"
+  },
+  "data": "base64_encrypted_data"
+}
+```
+
+### Legacy File Format (Version 2.0-6.0)
 ```json
 {
   "version": "2.0",
@@ -85,25 +106,37 @@ This document summarizes the changes made to comply with Taiwan's Electronic Sig
 
 ## User Interface Changes
 
-### Sign Page
+### Sign Page (v7.0+)
+1. **Jurisdiction Selection** - New section to choose legal framework
+2. **Signer Information Section** - Identity fields (required for all jurisdictions)
+3. **Legal Notice Section** - Dynamic legal disclaimer based on selected jurisdiction
+4. **Consent Checkbox** - Required before signature creation
+5. **ISO 8601 Timestamp Display** - Shows appropriate timezone
+
+### Decrypt Page (v7.0+)
+1. **Extended Information Display** - Shows all signer information
+2. **Jurisdiction Display** - Shows full country name and jurisdiction code
+3. **Legal Framework Display** - Shows compliance standard and signature level
+4. **Compliance Standard** - Shows applicable laws and regulations
+5. **Integrity Verification** - Shows verification status with checkmarks/crosses
+6. **Version Detection** - Indicates file format version and handles all versions (v1.0-v7.0)
+
+### Legacy Sign Page (v2.0-v6.0)
 1. **Signer Information Section** - New section with identity fields
-2. **Legal Notice Section** - Yellow highlighted box with legal disclaimer
+2. **Legal Notice Section** - Yellow highlighted box with legal disclaimer (Taiwan-only)
 3. **Consent Checkbox** - Required before signature creation
 4. **ISO 8601 Timestamp Display** - Shows Taiwan timezone
 
-### Decrypt Page
-1. **Extended Information Display** - Shows all signer information
-2. **Jurisdiction Display** - Shows "Taiwan (R.O.C.)"
-3. **Compliance Standard** - Shows "TW Electronic Signatures Act"
-4. **Integrity Verification** - Shows verification status with checkmarks/crosses
-5. **Version Detection** - Indicates if legacy (v1.0) or compliant (v2.0) format
-
 ## Backward Compatibility
 
-The application maintains full backward compatibility with version 1.0 signatures:
-- Old signatures can still be decrypted with correct Sign-ID
+The application maintains full backward compatibility with all previous versions:
+- **v1.0-v2.0 signatures** can still be decrypted (with legacy format warning)
+- **v3.0-v4.0 signatures** require re-signing for security reasons
+- **v5.0-v6.0 signatures** fully supported with correct Sign-ID
+- **v7.0 signatures** include enhanced legal framework metadata
 - System detects version and displays appropriate information
-- Shows "N/A (Legacy format)" for missing fields in v1.0 signatures
+- Shows "N/A (Legacy format)" for missing fields in old signatures
+- All encryption methods remain compatible
 
 ## Security Features
 
@@ -126,19 +159,40 @@ For critical legal documents, users should consult with legal professionals.
 
 All features have been tested:
 - ✅ Signature creation with Taiwan compliance fields
+- ✅ Multi-jurisdiction selection (10+ jurisdictions)
+- ✅ Dynamic legal notice updates based on jurisdiction
 - ✅ Legal consent requirement enforcement
-- ✅ Encryption with signer information
-- ✅ Decryption and verification
+- ✅ Encryption with signer information and legal framework
+- ✅ Decryption and verification (all versions v1.0-v7.0)
 - ✅ Integrity verification with SHA-256
-- ✅ Backward compatibility with v1.0 files
+- ✅ Backward compatibility with v1.0-v6.0 files
 - ✅ ISO 8601 timestamp display
+- ✅ Bilingual support (English/Chinese)
 
 ## Conclusion
 
-The e-signature application now fully implements technical requirements for Taiwan's 
-Electronic Signatures Act, providing legally compliant digital signatures with:
-- Signer identification
-- Clear signature intent
-- Document integrity protection
-- Reliable timestamps
-- Non-repudiation mechanisms
+The e-signature application now provides comprehensive legal compliance:
+
+### Taiwan Compliance:
+- Fully implements technical requirements for Taiwan's Electronic Signatures Act
+- Includes Personal Data Protection Act (PDPA) compliance
+- Suitable for legally binding digital signatures in Taiwan
+
+### Global Compliance:
+- Supports 10+ jurisdictions worldwide
+- Dynamically adapts legal framework based on user selection
+- Complies with major electronic signature laws (eIDAS, ESIGN, UETA, etc.)
+- Privacy-first design complies with GDPR, CCPA, PIPEDA, etc.
+
+### Key Strengths:
+- ✅ Multi-jurisdiction support with proper legal framework
+- ✅ No vendor lock-in (open format)
+- ✅ No server dependency (works offline)
+- ✅ Maximum privacy (no data transmission)
+- ✅ Strong security (military-grade encryption)
+- ✅ Universal compatibility (browser-based)
+- ✅ Comprehensive audit trail
+
+**For detailed global legal compliance information, see [GLOBAL_LEGAL_COMPLIANCE.md](GLOBAL_LEGAL_COMPLIANCE.md).**
+
+**For detailed Taiwan law research, see [TAIWAN_LAWS_RESEARCH.md](TAIWAN_LAWS_RESEARCH.md).**
