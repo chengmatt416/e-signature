@@ -876,6 +876,10 @@
                     // New format - Asymmetric encryption keys prevent re-encryption
                     showAlert('Asymmetric encryption format (v6.0) detected.', 'success');
                     decryptedData = await decryptDataV6(fileData.data, signIdInput);
+                } else if (fileData.version === '7.0') {
+                    // Multi-jurisdiction format with enhanced legal framework
+                    showAlert('Multi-jurisdiction format (v7.0) detected - ' + (fileData.legalFramework ? fileData.legalFramework.country : 'Unknown jurisdiction'), 'success');
+                    decryptedData = await decryptDataV6(fileData.data, signIdInput); // Uses same encryption as v6.0
                 } else {
                     throw new Error('Unsupported file version: ' + fileData.version);
                 }
@@ -930,12 +934,49 @@
             }
 
             // Display jurisdiction and compliance info if available
-            if (data.jurisdiction) {
-                document.getElementById('resultJurisdiction').textContent = data.jurisdiction === 'TW' ? 'Taiwan (R.O.C.)' : data.jurisdiction;
+            if (data.jurisdiction || data.legalFramework) {
+                let jurisdictionDisplay = '';
+                let complianceDisplay = '';
+                
+                // Handle both old and new formats
+                if (data.legalFramework) {
+                    // New format (v7.0+) with detailed legal framework
+                    jurisdictionDisplay = `${data.legalFramework.country} (${data.jurisdiction})`;
+                    complianceDisplay = data.legalFramework.complianceStandard;
+                    
+                    // Add signature level if available
+                    if (data.legalFramework.signatureLevel) {
+                        complianceDisplay += ` - ${data.legalFramework.signatureLevel}`;
+                    }
+                } else if (data.jurisdiction) {
+                    // Old format (v2.0-v6.0)
+                    const jurisdictionNames = {
+                        'TW': 'Taiwan (R.O.C.)',
+                        'EU': 'European Union',
+                        'US': 'United States',
+                        'UK': 'United Kingdom',
+                        'CA': 'Canada',
+                        'AU': 'Australia',
+                        'SG': 'Singapore',
+                        'JP': 'Japan',
+                        'HK': 'Hong Kong',
+                        'INTL': 'International'
+                    };
+                    jurisdictionDisplay = jurisdictionNames[data.jurisdiction] || data.jurisdiction;
+                    complianceDisplay = data.complianceStandard || 'N/A';
+                }
+                
+                document.getElementById('resultJurisdiction').textContent = jurisdictionDisplay;
                 document.getElementById('resultJurisdictionItem').style.display = 'block';
+                
+                if (complianceDisplay) {
+                    document.getElementById('resultCompliance').textContent = complianceDisplay;
+                    document.getElementById('resultComplianceItem').style.display = 'block';
+                }
             }
 
-            if (data.complianceStandard) {
+            // Legacy: Old complianceStandard for backward compatibility
+            if (!data.legalFramework && data.complianceStandard && !data.jurisdiction) {
                 document.getElementById('resultCompliance').textContent = data.complianceStandard;
                 document.getElementById('resultComplianceItem').style.display = 'block';
             }
