@@ -129,14 +129,15 @@ As of version 7.0, the application supports 10+ jurisdictions worldwide. Users c
 
 ## Backward Compatibility
 
-The application maintains full backward compatibility with all previous versions:
-- **v1.0-v2.0 signatures** can still be decrypted (with legacy format warning)
-- **v3.0-v4.0 signatures** require re-signing for security reasons
-- **v5.0-v6.0 signatures** fully supported with correct Sign-ID
-- **v7.0 signatures** include enhanced legal framework metadata
-- System detects version and displays appropriate information
+The application handles all previous file format versions:
+- **v1.0-v2.0 signatures**: Can be decrypted but show legacy format warning
+- **v3.0 signatures**: Not supported (passphrase-based, deprecated for security)
+- **v4.0 signatures**: Not supported (time-bound encryption, deprecated for security)  
+- **v5.0 signatures**: Fully supported with correct Sign-ID
+- **v6.0 signatures**: Fully supported (asymmetric encryption)
+- **v7.0 signatures**: Latest version with enhanced legal framework metadata
+- System automatically detects version and handles accordingly
 - Shows "N/A (Legacy format)" for missing fields in old signatures
-- All encryption methods remain compatible
 
 ## Security Features
 
@@ -163,9 +164,9 @@ All features have been tested:
 - ✅ Dynamic legal notice updates based on jurisdiction
 - ✅ Legal consent requirement enforcement
 - ✅ Encryption with signer information and legal framework
-- ✅ Decryption and verification (all versions v1.0-v7.0)
+- ✅ Decryption and verification (v1.0, v2.0, v5.0, v6.0, v7.0)
 - ✅ Integrity verification with SHA-256
-- ✅ Backward compatibility with v1.0-v6.0 files
+- ✅ Version compatibility handling (v1.0-v7.0)
 - ✅ ISO 8601 timestamp display
 - ✅ Bilingual support (English/Chinese)
 
