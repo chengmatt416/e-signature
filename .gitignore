@@ -1,8 +1,6 @@
 # Dependencies
 node_modules/
 npm-debug.log*
-package.json
-package-lock.json
 
 # Testing
 coverage/
@@ -11,6 +9,9 @@ coverage/
 # Build outputs
 dist/
 build/
+www/
+android/
+ios/
 
 # IDE
 .vscode/

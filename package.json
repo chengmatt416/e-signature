@@ -1,0 +1,29 @@
+{
+  "name": "e-signature",
+  "version": "1.0.0",
+  "description": "A secure, client-side digital signature application that runs entirely in your browser. Create, encrypt, and verify digital signatures without sending any data to a server.",
+  "main": "sw.js",
+  "scripts": {
+    "prepare-build": "mkdir -p www && cp *.html www/ && cp manifest.json www/ && cp sw.js www/ && cp -r icons www/ 2>/dev/null || true",
+    "build:android": "npm run prepare-build && npx cap sync android && cd android && ./gradlew assembleRelease",
+    "build:android:debug": "npm run prepare-build && npx cap sync android && cd android && ./gradlew assembleDebug",
+    "build:ios": "npm run prepare-build && npx cap sync ios",
+    "setup": "npm install && npx cap add android && npx cap add ios",
+    "sync": "npm run prepare-build && npx cap sync"
+  },
+  "keywords": [
+    "signature",
+    "e-signature",
+    "digital-signature",
+    "pwa",
+    "encryption"
+  ],
+  "author": "E-Signature",
+  "license": "MIT",
+  "devDependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4"
+  }
+}
