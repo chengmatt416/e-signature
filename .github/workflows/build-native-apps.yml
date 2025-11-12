@@ -2,7 +2,10 @@ name: Build Native Apps (APK & IPA)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: 
+      - main
+      - master
+      - 'copilot/**'
     tags:
       - 'v*'
   pull_request:
