@@ -25,395 +25,60 @@
     <!-- Theme Color -->
     <meta name="theme-color" content="#667eea">
     
+
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
-            max-width: 800px;
-            width: 100%;
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2em;
-        }
-
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 0.9em;
-        }
-
-        .info-section {
-            background: #f5f5f5;
-            padding: 20px;
+        .lang-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #4f46e5;
             border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .input-section {
-            margin-bottom: 20px;
-        }
-
-        .input-section label {
-            display: block;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 8px;
-        }
-
-        .input-section input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-
-        .input-section input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .upload-section {
-            border: 3px dashed #ddd;
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            margin-bottom: 20px;
-            transition: all 0.3s;
+            padding: 8px 16px;
             cursor: pointer;
+            font-weight: 600;
+            color: #4f46e5;
+            transition: all 0.3s;
+            font-size: 0.9em;
+            z-index: 50;
         }
 
-        .upload-section:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
+        .lang-toggle:hover {
+            background: #4f46e5;
+            color: white;
         }
 
-        .upload-icon {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .upload-text {
-            color: #666;
-            font-size: 1em;
-            margin-bottom: 5px;
-        }
-
-        .upload-subtext {
-            color: #999;
-            font-size: 0.85em;
+        @media (max-width: 600px) {
+            .lang-toggle {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 0.8em;
+                z-index: 1000;
+            }
         }
 
         #documentFileInput {
             display: none;
         }
 
-        .file-preview-btn {
-            margin-top: 10px;
-            padding: 8px 16px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9em;
-            transition: all 0.3s;
-        }
-
-        .file-preview-btn:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            overflow: auto;
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 2% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 1000px;
-            max-height: 90vh;
-            overflow: auto;
-            position: relative;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 2em;
-            font-weight: bold;
-            color: #666;
-            cursor: pointer;
-            background: none;
-            border: none;
-            padding: 0;
-            line-height: 1;
-        }
-
-        .modal-close:hover {
-            color: #000;
-        }
-
-        .file-preview-container {
-            width: 100%;
-            min-height: 400px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .file-preview-container iframe,
-        .file-preview-container img {
-            max-width: 100%;
-            max-height: 80vh;
-        }
-
-        .file-preview-container pre {
-            text-align: left;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            max-height: 70vh;
-            overflow: auto;
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 4px;
-        }
-
-        /* Keypad Button Styles */
-        .keypad-btn {
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #333;
-            cursor: pointer;
-            transition: all 0.2s;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .keypad-btn:hover {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-            transform: scale(1.05);
-        }
-
-        .keypad-btn:active {
-            transform: scale(0.95);
-        }
-
-        .info-item {
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .info-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .info-label {
-            font-weight: 600;
-            color: #555;
-        }
-
-        .info-value {
-            color: #333;
-            font-family: 'Courier New', monospace;
-            background: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-
-        .signature-section {
-            margin-bottom: 20px;
-        }
-
-        .signature-section h2 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 1.2em;
-        }
-
         #signatureCanvas {
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            cursor: crosshair;
-            display: block;
-            width: 100%;
-            height: 300px;
-            background: white;
             touch-action: none;
         }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 1em;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            flex: 1;
-            min-width: 150px;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-            transform: translateY(-2px);
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-            transform: translateY(-2px);
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .alert.show {
-            display: block;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 1.5em;
-            }
-
-            .info-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 5px;
-            }
-
-            .info-value {
-                width: 100%;
-                word-break: break-all;
-            }
-        }
-
-        .lang-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #667eea;
-            transition: all 0.3s;
-            font-size: 0.9em;
-        }
-
-        .lang-toggle:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        @media (max-width: 600px) {
-            .lang-toggle {
-                top: 10px;
-                right: 10px;
-                padding: 6px 12px;
-                font-size: 0.8em;
-            }
-        }
     </style>
+
+
+    <!-- PDF.js for rendering and keyword extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';</script>
+    <!-- pdf-lib for stamping and metadata -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
-<body>
+<body class="bg-gradient-to-br from-indigo-600 to-purple-700 min-h-screen flex flex-col items-center justify-center p-4 font-sans text-gray-800">
     <button class="lang-toggle" onclick="toggleLanguage()" id="langToggle">中文</button>
-    <div class="container">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-10 max-w-4xl w-full relative">
         <h1 data-en="📝 E-Signature" data-zh="📝 電子簽章">📝 E-Signature</h1>
         <p class="subtitle" data-en="Create your secure digital signature" data-zh="建立您的安全數位簽章">Create your secure digital signature</p>
 
@@ -462,7 +127,7 @@
             <p style="color: #555; font-size: 0.9em; margin-bottom: 15px;" data-en="Choose the legal jurisdiction for this signature. This determines which laws govern the signature's legal validity." data-zh="選擇此簽章的法律管轄區。這將決定哪些法律約束簽章的法律效力。">Choose the legal jurisdiction for this signature. This determines which laws govern the signature's legal validity.</p>
             <div style="margin-bottom: 15px;">
                 <label for="jurisdiction" style="display: block; font-weight: 600; color: #555; margin-bottom: 8px;" data-en="Legal Jurisdiction *:" data-zh="法律管轄區 *:">Legal Jurisdiction *:</label>
-                <select id="jurisdiction" style="width: 100%; padding: 12px; border: 2px solid #2196F3; border-radius: 6px; font-size: 1em; background: white; cursor: pointer;" onchange="updateJurisdictionInfo()">
+                <select id="jurisdiction" class="w-full p-4 border-2 border-blue-400 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-all outline-none bg-white cursor-pointer" onchange="updateJurisdictionInfo()">
                     <option value="TW">🇹🇼 Taiwan (台灣) - Electronic Signatures Act</option>
                     <option value="EU">🇪🇺 European Union - eIDAS Regulation (Simple E-Signature)</option>
                     <option value="US">🇺🇸 United States - ESIGN Act / UETA</option>
@@ -487,19 +152,19 @@
             <h2 style="color: #333; margin-bottom: 15px; font-size: 1.3em;" data-en="📋 Signer Information (Required)" data-zh="📋 簽署人資訊（必填）">📋 Signer Information (Required)</h2>
             <div style="margin-bottom: 15px;">
                 <label for="signerName" data-en="Full Name (姓名) *:" data-zh="姓名 *:">Full Name (姓名) *:</label>
-                <input type="text" id="signerName" data-placeholder-en="Enter your full name" data-placeholder-zh="輸入您的全名" placeholder="Enter your full name" required>
+                <input type="text" id="signerName" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none" data-placeholder-en="Enter your full name" data-placeholder-zh="輸入您的全名" placeholder="Enter your full name" required>
             </div>
             <div style="margin-bottom: 15px;">
                 <label for="signerIdNumber" data-en="National ID / Passport Number (身分證字號/護照號碼) *:" data-zh="身分證字號/護照號碼 *:">National ID / Passport Number (身分證字號/護照號碼) *:</label>
-                <input type="text" id="signerIdNumber" data-placeholder-en="e.g., A123456789" data-placeholder-zh="例如：A123456789" placeholder="e.g., A123456789" required>
+                <input type="text" id="signerIdNumber" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none" data-placeholder-en="e.g., A123456789" data-placeholder-zh="例如：A123456789" placeholder="e.g., A123456789" required>
             </div>
             <div style="margin-bottom: 15px;">
                 <label for="signerEmail" data-en="Email (電子郵件):" data-zh="電子郵件:">Email (電子郵件):</label>
-                <input type="email" id="signerEmail" data-placeholder-en="your.email@example.com" data-placeholder-zh="您的電子郵件@example.com" placeholder="your.email@example.com">
+                <input type="email" id="signerEmail" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none" data-placeholder-en="your.email@example.com" data-placeholder-zh="您的電子郵件@example.com" placeholder="your.email@example.com">
             </div>
             <div style="margin-bottom: 15px;">
                 <label for="signerPhone" data-en="Phone Number (電話號碼):" data-zh="電話號碼:">Phone Number (電話號碼):</label>
-                <input type="tel" id="signerPhone" data-placeholder-en="+886-912-345-678" data-placeholder-zh="+886-912-345-678" placeholder="+886-912-345-678">
+                <input type="tel" id="signerPhone" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none" data-placeholder-en="+886-912-345-678" data-placeholder-zh="+886-912-345-678" placeholder="+886-912-345-678">
             </div>
         </div>
 
@@ -536,22 +201,38 @@
             </div>
         </div>
 
-        <div class="upload-section" id="documentUploadSection" onclick="handleUploadClick(event)">
+        <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-500 hover:bg-indigo-50 transition-all cursor-pointer mb-6" id="documentUploadSection" onclick="handleUploadClick(event)">
             <div class="upload-icon">📄</div>
+
+        <div id="pdfPreviewContainer" class="relative hidden mt-6 border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 mb-6 w-full" style="min-height: 400px; display: none;">
+            <canvas id="pdfCanvas" class="w-full"></canvas>
+            <div id="signatureOverlay" class="absolute hidden border-2 border-dashed border-indigo-500 cursor-move bg-white/50 backdrop-blur-sm shadow-lg z-10" style="display: none; width: 150px; height: 50px;">
+                <img id="overlayImage" class="w-full h-full pointer-events-none" />
+                <div id="resizeHandle" class="absolute bottom-0 right-0 w-6 h-6 bg-indigo-500 cursor-se-resize rounded-tl-lg shadow-md flex items-center justify-center text-white text-xs">⤡</div>
+            </div>
+        </div>
+
             <div class="upload-text" data-en="Optional: Upload Any File to Sign" data-zh="選填：上傳要簽署的檔案">Optional: Upload Any File to Sign</div>
             <div class="upload-subtext" data-en="Click to upload any file that will be encrypted with your signature" data-zh="點擊上傳要與簽章一起加密的檔案">Click to upload any file that will be encrypted with your signature</div>
             <input type="file" id="documentFileInput">
             <button id="viewFileBtn" class="file-preview-btn" style="display: none;" onclick="viewUploadedFile(event)" data-en="👁️ View File" data-zh="👁️ 檢視檔案">👁️ View File</button>
         </div>
+        <div id="pdfPreviewContainer" class="relative mt-6 border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 mb-6 w-full" style="display: none;">
+            <canvas id="pdfCanvas" class="w-full"></canvas>
+            <div id="signatureOverlay" class="absolute border-2 border-dashed border-indigo-500 cursor-move bg-white/50 backdrop-blur-sm shadow-lg z-10" style="display: none; width: 150px; height: 50px;">
+                <img id="overlayImage" class="w-full h-full pointer-events-none" />
+                <div id="resizeHandle" class="absolute bottom-0 right-0 w-6 h-6 bg-indigo-500 cursor-se-resize rounded-tl-lg shadow-md flex items-center justify-center text-white text-xs">⤡</div>
+            </div>
+        </div>
 
         <div class="signature-section">
             <h2 data-en="Draw Your Signature" data-zh="繪製您的簽名">Draw Your Signature</h2>
-            <canvas id="signatureCanvas"></canvas>
+            <canvas id="signatureCanvas" class="border-2 border-gray-200 rounded-xl cursor-crosshair w-full h-[300px] bg-white touch-none shadow-inner"></canvas>
         </div>
 
         <div class="button-group">
-            <button class="btn-secondary" onclick="clearSignature()" data-en="Clear" data-zh="清除">Clear</button>
-            <button class="btn-primary" onclick="saveSignature()" data-en="Save & Export" data-zh="儲存並匯出">Save & Export</button>
+            <button class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-xl transition-all w-full md:w-auto" onclick="clearSignature()" data-en="Clear" data-zh="清除">Clear</button>
+            <button class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all w-full md:w-auto" onclick="saveSignature()" data-en="Save & Export" data-zh="儲存並匯出">Save & Export</button>
         </div>
         </div>
     </div>
@@ -794,21 +475,45 @@
             }
         }
 
+        let serverTimeOffset = 0;
+        let isTimeSynced = false;
+
         // Update date and time (ISO 8601 format for Taiwan)
+        async function initDateTime() {
+            try {
+                // Fetch trusted timestamp from server (Vercel API)
+                const response = await fetch('/api/timestamp');
+                if (response.ok) {
+                    const data = await response.json();
+                    serverTimeOffset = data.timestamp - Date.now();
+                    isTimeSynced = true;
+                    console.log('Time synchronized with server. Offset:', serverTimeOffset);
+                }
+            } catch (error) {
+                console.log('Using local time fallback');
+            }
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        }
+
         function updateDateTime() {
-            const now = new Date();
+            // Apply server offset if available to ensure accurate timestamp regardless of client clock
+            const now = new Date(Date.now() + serverTimeOffset);
+
             // ISO 8601 format with timezone (Taiwan is UTC+8)
-            const formatted = now.toISOString();
             const taiwanTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)).toISOString().replace('Z', '+08:00');
-            document.getElementById('datetime').textContent = taiwanTime;
+
+            const datetimeEl = document.getElementById('datetime');
+            if (datetimeEl) {
+                datetimeEl.textContent = taiwanTime + (isTimeSynced ? ' (Server Sync)' : '');
+            }
         }
 
         // Initialize
         const signId = generateSignId();
         document.getElementById('signId').textContent = signId;
         document.getElementById('deviceId').textContent = generateDeviceId();
-        updateDateTime();
-        setInterval(updateDateTime, 1000);
+        initDateTime();
 
         // Drawing functions
         function startDrawing(e) {
@@ -995,6 +700,175 @@
             return btoa(binary);
         }
 
+
+        let pdfDocProxy = null;
+        let pdfPageProxy = null;
+        let pdfScale = 1;
+        let overlayX = 50;
+        let overlayY = 50;
+        let overlayW = 150;
+        let overlayH = 50;
+
+        const overlayDiv = document.getElementById('signatureOverlay');
+        const overlayImg = document.getElementById('overlayImage');
+        const resizeHandle = document.getElementById('resizeHandle');
+        const pdfContainer = document.getElementById('pdfPreviewContainer');
+        const pCanvas = document.getElementById('pdfCanvas');
+        const pCtx = pCanvas.getContext('2d');
+
+        let isDraggingOverlay = false;
+        let isResizingOverlay = false;
+        let startX, startY;
+
+        // Overlay Mouse/Touch Events
+        overlayDiv.addEventListener('mousedown', (e) => {
+            if (e.target === resizeHandle) {
+                isResizingOverlay = true;
+            } else {
+                isDraggingOverlay = true;
+            }
+            startX = e.clientX;
+            startY = e.clientY;
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDraggingOverlay) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                overlayX += dx;
+                overlayY += dy;
+                // Boundaries
+                overlayX = Math.max(0, Math.min(overlayX, pCanvas.offsetWidth - overlayW));
+                overlayY = Math.max(0, Math.min(overlayY, pCanvas.offsetHeight - overlayH));
+                overlayDiv.style.left = overlayX + 'px';
+                overlayDiv.style.top = overlayY + 'px';
+                startX = e.clientX;
+                startY = e.clientY;
+            } else if (isResizingOverlay) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                overlayW = Math.max(50, overlayW + dx);
+                overlayH = Math.max(20, overlayH + dy);
+                overlayDiv.style.width = overlayW + 'px';
+                overlayDiv.style.height = overlayH + 'px';
+                startX = e.clientX;
+                startY = e.clientY;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDraggingOverlay = false;
+            isResizingOverlay = false;
+        });
+
+        // Touch events mapping
+        overlayDiv.addEventListener('touchstart', (e) => {
+            if (e.target === resizeHandle) isResizingOverlay = true;
+            else isDraggingOverlay = true;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        }, {passive: false});
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isDraggingOverlay && !isResizingOverlay) return;
+            e.preventDefault();
+            const clientX = e.touches[0].clientX;
+            const clientY = e.touches[0].clientY;
+            if (isDraggingOverlay) {
+                overlayX += clientX - startX;
+                overlayY += clientY - startY;
+                overlayX = Math.max(0, Math.min(overlayX, pCanvas.offsetWidth - overlayW));
+                overlayY = Math.max(0, Math.min(overlayY, pCanvas.offsetHeight - overlayH));
+                overlayDiv.style.left = overlayX + 'px';
+                overlayDiv.style.top = overlayY + 'px';
+            } else if (isResizingOverlay) {
+                overlayW = Math.max(50, overlayW + (clientX - startX));
+                overlayH = Math.max(20, overlayH + (clientY - startY));
+                overlayDiv.style.width = overlayW + 'px';
+                overlayDiv.style.height = overlayH + 'px';
+            }
+            startX = clientX;
+            startY = clientY;
+        }, {passive: false});
+
+        window.addEventListener('touchend', () => {
+            isDraggingOverlay = false;
+            isResizingOverlay = false;
+        });
+
+        // Whenever drawing finishes, update the overlay image
+        canvas.addEventListener('mouseup', updateOverlayImage);
+        canvas.addEventListener('touchend', updateOverlayImage);
+
+        function updateOverlayImage() {
+            if (hasSignature && uploadedFileType === 'application/pdf') {
+                overlayImg.src = canvas.toDataURL('image/png');
+                overlayDiv.style.display = 'block';
+            } else {
+                overlayDiv.style.display = 'none';
+            }
+        }
+
+        async function renderPDF(dataUrl) {
+            try {
+                pdfContainer.style.display = 'block';
+                const loadingTask = pdfjsLib.getDocument(dataUrl);
+                pdfDocProxy = await loadingTask.promise;
+                pdfPageProxy = await pdfDocProxy.getPage(1);
+
+                // Scale to fit container width
+                const containerWidth = pdfContainer.clientWidth || 800;
+                const unscaledViewport = pdfPageProxy.getViewport({ scale: 1.0 });
+                pdfScale = containerWidth / unscaledViewport.width;
+                const viewport = pdfPageProxy.getViewport({ scale: pdfScale });
+
+                pCanvas.width = viewport.width;
+                pCanvas.height = viewport.height;
+
+                const renderContext = {
+                    canvasContext: pCtx,
+                    viewport: viewport
+                };
+                await pdfPageProxy.render(renderContext).promise;
+
+                // Intelligent Feature: Keyword extraction
+                const textContent = await pdfPageProxy.getTextContent();
+                const keywords = ['signature', 'sign here', '簽名', '簽章'];
+                let foundKeyword = false;
+
+                for (let item of textContent.items) {
+                    const str = item.str.toLowerCase();
+                    if (keywords.some(k => str.includes(k))) {
+                        // Position overlay near keyword
+                        const transform = pdfjsLib.Util.transform(viewport.transform, item.transform);
+                        overlayX = transform[4]; // x
+                        overlayY = transform[5] - 40; // y (move up slightly)
+
+                        // Ensure bounds
+                        overlayX = Math.max(0, Math.min(overlayX, pCanvas.offsetWidth - overlayW));
+                        overlayY = Math.max(0, Math.min(overlayY, pCanvas.offsetHeight - overlayH));
+                        foundKeyword = true;
+                        break;
+                    }
+                }
+
+                if (!foundKeyword) {
+                    // Default bottom right
+                    overlayX = pCanvas.offsetWidth - overlayW - 50;
+                    overlayY = pCanvas.offsetHeight - overlayH - 50;
+                }
+
+                overlayDiv.style.left = overlayX + 'px';
+                overlayDiv.style.top = overlayY + 'px';
+
+                updateOverlayImage();
+            } catch (err) {
+                console.error('Error rendering PDF:', err);
+                showAlert('Error loading PDF preview', 'error');
+            }
+        }
+
         // Document file upload handling
         const documentFileInput = document.getElementById('documentFileInput');
         const documentUploadSection = document.getElementById('documentUploadSection');
@@ -1027,6 +901,13 @@
                     uploadedFileType = file.type;
                     const uploadText = documentUploadSection.querySelector('.upload-text');
                     uploadText.textContent = '✓ ' + file.name;
+
+                    if (file.type === 'application/pdf') {
+                        renderPDF(event.target.result);
+                    } else {
+                        pdfContainer.style.display = 'none';
+                        overlayDiv.style.display = 'none';
+                    }
                     // Show the view button
                     document.getElementById('viewFileBtn').style.display = 'inline-block';
                     showAlert('uploadSuccess', 'success');
@@ -1278,6 +1159,53 @@
             try {
                 // Get signature as base64
                 const signatureImage = canvas.toDataURL('image/png');
+
+                // --- HIGHEST-END ANTI-TAMPERING: STAMPING & METADATA ---
+                if (uploadedDocument && uploadedFileType === 'application/pdf') {
+                    try {
+                        const existingPdfBytes = await fetch(uploadedDocument).then(res => res.arrayBuffer());
+                        const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+
+                        // Embed signature image
+                        const pngImage = await pdfDoc.embedPng(signatureImage);
+
+                        // Get the first page
+                        const pages = pdfDoc.getPages();
+                        const firstPage = pages[0];
+                        const { width, height } = firstPage.getSize();
+
+                        // Calculate coordinates. Note: PDF-lib coordinates are from bottom-left
+                        // pCanvas coordinates are from top-left. We need to un-scale them.
+                        const unscaledW = overlayW / pdfScale;
+                        const unscaledH = overlayH / pdfScale;
+                        const unscaledX = overlayX / pdfScale;
+                        // PDF Y is from bottom up
+                        const unscaledY = height - ((overlayY / pdfScale) + unscaledH);
+
+                        firstPage.drawImage(pngImage, {
+                            x: unscaledX,
+                            y: unscaledY,
+                            width: unscaledW,
+                            height: unscaledH,
+                        });
+
+                        // Add Metadata for integrity
+                        pdfDoc.setTitle('E-Signature Signed Document');
+                        pdfDoc.setSubject('Sign-ID: ' + signId);
+                        pdfDoc.setAuthor(signerName);
+                        pdfDoc.setCreationDate(new Date());
+                        pdfDoc.setModificationDate(new Date());
+
+                        const pdfBytes = await pdfDoc.saveAsBase64({ dataUri: true });
+                        uploadedDocument = pdfBytes;
+                        console.log('PDF Stamped and secured with metadata');
+                    } catch (err) {
+                        console.error('Error stamping PDF:', err);
+                        showAlert('Error applying signature to PDF', 'error');
+                        return;
+                    }
+                }
+                // -----------------------------------------------------
 
                 // Calculate hash of signature image for integrity
                 const signatureHash = await sha256(signatureImage);
