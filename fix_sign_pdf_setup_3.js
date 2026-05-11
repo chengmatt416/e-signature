@@ -1,0 +1,52 @@
+const fs = require('fs');
+let content = fs.readFileSync('sign.html', 'utf8');
+
+// I'll just find the exact index of `id="documentUploadSection"` and work backwards/forwards
+const idx = content.indexOf('id="documentUploadSection"');
+if(idx !== -1) {
+    const start = content.lastIndexOf('<div', idx);
+    const end = content.indexOf('</div>', content.indexOf('</button>', idx)) + 6;
+
+    // Oh wait, there are multiple divs. The file preview button has a closing div right after it.
+
+    // Let's use regex with a precise boundary
+    const regex = /<div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-500 hover:bg-indigo-50 transition-all cursor-pointer mb-6" id="documentUploadSection" onclick="handleUploadClick\(event\)">[\s\S]*?<button id="viewFileBtn".*?<\/button>\n\s*<\/div>/;
+
+    const match = content.match(regex);
+    if (!match) {
+        console.log("Could not find the upload section exactly.");
+
+        // Let's try cleaning up the nested mess
+        const cleanContent = content.replace(
+        /<div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-500 hover:bg-indigo-50 transition-all cursor-pointer mb-6" id="documentUploadSection" onclick="handleUploadClick\(event\)">\s*<div class="upload-icon">📄<\/div>\s*<div id="pdfPreviewContainer" class="relative hidden mt-6 border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 mb-6 w-full" style="min-height: 400px; display: none;">\s*<canvas id="pdfCanvas" class="w-full"><\/canvas>\s*<div id="signatureOverlay" class="absolute hidden border-2 border-dashed border-indigo-500 cursor-move bg-white\/50 backdrop-blur-sm shadow-lg z-10" style="display: none; width: 150px; height: 50px;">\s*<img id="overlayImage" class="w-full h-full pointer-events-none" \/>\s*<div id="resizeHandle" class="absolute bottom-0 right-0 w-6 h-6 bg-indigo-500 cursor-se-resize rounded-tl-lg shadow-md flex items-center justify-center text-white text-xs">⤡<\/div>\s*<\/div>\s*<\/div>\s*<div class="upload-text" data-en="Optional: Upload Any File to Sign" data-zh="選填：上傳要簽署的檔案">Optional: Upload Any File to Sign<\/div>\s*<div class="upload-subtext" data-en="Click to upload any file that will be encrypted with your signature" data-zh="點擊上傳要與簽章一起加密的檔案">Click to upload any file that will be encrypted with your signature<\/div>\s*<input type="file" id="documentFileInput">\s*<button id="viewFileBtn" class="file-preview-btn" style="display: none;" onclick="viewUploadedFile\(event\)" data-en="👁️ View File" data-zh="👁️ 檢視檔案">👁️ View File<\/button>\s*<\/div>/,
+        `<div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-500 hover:bg-indigo-50 transition-all cursor-pointer mb-6" id="documentUploadSection" onclick="handleUploadClick(event)">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text" data-en="Optional: Upload Any File to Sign" data-zh="選填：上傳要簽署的檔案">Optional: Upload Any File to Sign</div>
+            <div class="upload-subtext" data-en="Click to upload any file that will be encrypted with your signature" data-zh="點擊上傳要與簽章一起加密的檔案">Click to upload any file that will be encrypted with your signature</div>
+            <input type="file" id="documentFileInput">
+            <button id="viewFileBtn" class="file-preview-btn" style="display: none;" onclick="viewUploadedFile(event)" data-en="👁️ View File" data-zh="👁️ 檢視檔案">👁️ View File</button>
+        </div>
+
+        <div id="pdfPreviewContainer" class="relative mt-6 border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 mb-6 w-full" style="display: none;">
+            <canvas id="pdfCanvas" class="w-full"></canvas>
+            <div id="signatureOverlay" class="absolute border-2 border-dashed border-indigo-500 cursor-move bg-white/50 backdrop-blur-sm shadow-lg z-10" style="display: none; width: 150px; height: 50px;">
+                <img id="overlayImage" class="w-full h-full pointer-events-none" />
+                <div id="resizeHandle" class="absolute bottom-0 right-0 w-6 h-6 bg-indigo-500 cursor-se-resize rounded-tl-lg shadow-md flex items-center justify-center text-white text-xs">⤡</div>
+            </div>
+        </div>`
+        );
+        fs.writeFileSync('sign.html', cleanContent);
+        console.log("Cleanup attempted.");
+    } else {
+        console.log("Regex matched.");
+        const replacement = match[0] + `
+        <div id="pdfPreviewContainer" class="relative mt-6 border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 mb-6 w-full" style="display: none;">
+            <canvas id="pdfCanvas" class="w-full"></canvas>
+            <div id="signatureOverlay" class="absolute border-2 border-dashed border-indigo-500 cursor-move bg-white/50 backdrop-blur-sm shadow-lg z-10" style="display: none; width: 150px; height: 50px;">
+                <img id="overlayImage" class="w-full h-full pointer-events-none" />
+                <div id="resizeHandle" class="absolute bottom-0 right-0 w-6 h-6 bg-indigo-500 cursor-se-resize rounded-tl-lg shadow-md flex items-center justify-center text-white text-xs">⤡</div>
+            </div>
+        </div>`;
+        fs.writeFileSync('sign.html', content.replace(regex, replacement));
+    }
+}
