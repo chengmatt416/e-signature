@@ -73,11 +73,27 @@ A secure, client-side digital signature application that runs entirely in your b
 
 Visit the live application: [https://chengmatt416.github.io/e-signature/](https://chengmatt416.github.io/e-signature/)
 
-## 📱 Install as Web App (PWA)
+## 📱 Install as Native App
 
-E-Signature can be installed as a Progressive Web App on your mobile device or desktop for a native app-like experience!
+E-Signature is available as both a Progressive Web App (PWA) and native mobile applications!
 
-### On Android (Chrome/Edge)
+### 🤖 Download Native Apps
+
+#### Android APK
+- **Download from GitHub Releases**: Check the [Releases page](https://github.com/chengmatt416/e-signature/releases) for the latest APK
+- **Automated Builds**: APK files are automatically built on every release
+- **Installation**: Download the APK and install directly (enable "Install from Unknown Sources" in settings)
+
+#### iOS IPA  
+- **Download from GitHub Releases**: Check the [Releases page](https://github.com/chengmatt416/e-signature/releases) for iOS builds
+- **TestFlight**: Coming soon for beta testing
+- **App Store**: Planned for future release
+
+### 📲 Install as Web App (PWA)
+
+E-Signature can also be installed as a Progressive Web App for instant access without downloading from app stores!
+
+#### On Android (Chrome/Edge)
 
 1. Visit [https://chengmatt416.github.io/e-signature/](https://chengmatt416.github.io/e-signature/)
 2. Tap the menu (⋮) in the browser
@@ -85,27 +101,47 @@ E-Signature can be installed as a Progressive Web App on your mobile device or d
 4. Follow the prompts to install
 5. The app will appear on your home screen and can be launched like a native app
 
-### On iOS (Safari)
+#### On iOS (Safari)
 
 1. Visit [https://chengmatt416.github.io/e-signature/](https://chengmatt416.github.io/e-signature/)
-2. Tap the Share button (⎋)
+2. Tap the Share button (□↑)
 3. Scroll down and tap "Add to Home Screen"
 4. Tap "Add" to confirm
-5. The app will appear on your home screen
+5. The app will appear on your home screen with full offline support
 
-### On Desktop (Chrome/Edge/Brave)
+**iOS Features:**
+- ✅ Full offline functionality
+- ✅ Standalone mode (no browser UI)
+- ✅ Native-like experience
+- ✅ Automatic updates
+- ✅ No App Store required
+
+#### On Desktop (Chrome/Edge/Brave)
 
 1. Visit [https://chengmatt416.github.io/e-signature/](https://chengmatt416.github.io/e-signature/)
 2. Look for the install icon (⊕) in the address bar
 3. Click "Install" in the prompt
 4. The app will open in its own window and be added to your applications
 
-**Benefits of installing as PWA:**
-- Works offline after first visit
-- Faster loading times
-- Native app-like experience
-- No app store required
-- Automatic updates
+**Benefits of PWA Installation:**
+- ✅ Works offline after first visit
+- ✅ Faster loading times
+- ✅ Native app-like experience
+- ✅ No app store required
+- ✅ Automatic updates
+- ✅ Cross-platform compatibility
+
+## 🛠️ Build Native Apps Yourself
+
+Want to build the APK and IPA files yourself? See [BUILD_NATIVE_APPS.md](BUILD_NATIVE_APPS.md) for detailed instructions.
+
+Quick start:
+```bash
+# Run the automated build script
+./build-native.sh
+```
+
+Or trigger automated builds via GitHub Actions on every push/release.
 
 ## 🔧 Technical Details
 
